@@ -1,0 +1,18 @@
+{
+  "input": "intro.mp4",
+  "crop": [
+    576,
+    720,
+    356,
+    0
+  ],
+  "fps": 24,
+  "source_seconds": 10.0,
+  "fade_seconds": 0.5,
+  "output_seconds": 9.5,
+  "audio_samples": 456000,
+  "audio_rate": 48000,
+  "audio_boundary_step": 1.0534549826805536e-05,
+  "portrait_sample": 0,
+  "note": "Linear overlap uses the same source-time mapping for picture and audio; no time-stretching."
+}

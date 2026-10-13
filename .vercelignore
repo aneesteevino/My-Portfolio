@@ -1,0 +1,13 @@
+.git
+.next
+node_modules
+artifacts
+test-results
+playwright-report
+intro.mp4
+intro.mov
+Resume.pdf
+resume-preview.png
+video-preview.jpg
+video-loop-check.jpg
+*.tsbuildinfo

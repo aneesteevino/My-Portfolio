@@ -1,0 +1,114 @@
+{
+  "python": {
+    "src": "/logos/python.svg",
+    "source": "https://raw.githubusercontent.com/devicons/devicon/master/icons/python/python-original.svg"
+  },
+  "typescript": {
+    "src": "/logos/typescript.svg",
+    "source": "https://raw.githubusercontent.com/devicons/devicon/master/icons/typescript/typescript-original.svg"
+  },
+  "javascript": {
+    "src": "/logos/javascript.svg",
+    "source": "https://raw.githubusercontent.com/devicons/devicon/master/icons/javascript/javascript-original.svg"
+  },
+  "fastapi": {
+    "src": "/logos/fastapi.svg",
+    "source": "https://raw.githubusercontent.com/devicons/devicon/master/icons/fastapi/fastapi-original.svg"
+  },
+  "nodejs": {
+    "src": "/logos/nodejs.svg",
+    "source": "https://raw.githubusercontent.com/devicons/devicon/master/icons/nodejs/nodejs-original.svg"
+  },
+  "express": {
+    "src": "/logos/express.svg",
+    "source": "https://raw.githubusercontent.com/devicons/devicon/master/icons/express/express-original.svg"
+  },
+  "mongodb": {
+    "src": "/logos/mongodb.svg",
+    "source": "https://raw.githubusercontent.com/devicons/devicon/master/icons/mongodb/mongodb-original.svg"
+  },
+  "postgresql": {
+    "src": "/logos/postgresql.svg",
+    "source": "https://raw.githubusercontent.com/devicons/devicon/master/icons/postgresql/postgresql-original.svg"
+  },
+  "mysql": {
+    "src": "/logos/mysql.svg",
+    "source": "https://raw.githubusercontent.com/devicons/devicon/master/icons/mysql/mysql-original.svg"
+  },
+  "supabase": {
+    "src": "/logos/supabase.svg",
+    "source": "https://raw.githubusercontent.com/devicons/devicon/master/icons/supabase/supabase-original.svg"
+  },
+  "nextjs": {
+    "src": "/logos/nextjs.svg",
+    "source": "https://raw.githubusercontent.com/devicons/devicon/master/icons/nextjs/nextjs-original.svg"
+  },
+  "react": {
+    "src": "/logos/react.svg",
+    "source": "https://raw.githubusercontent.com/devicons/devicon/master/icons/react/react-original.svg"
+  },
+  "tailwindcss": {
+    "src": "/logos/tailwindcss.svg",
+    "source": "https://raw.githubusercontent.com/devicons/devicon/master/icons/tailwindcss/tailwindcss-original.svg"
+  },
+  "docker": {
+    "src": "/logos/docker.svg",
+    "source": "https://raw.githubusercontent.com/devicons/devicon/master/icons/docker/docker-original.svg"
+  },
+  "github": {
+    "src": "/logos/github.svg",
+    "source": "https://raw.githubusercontent.com/devicons/devicon/master/icons/github/github-original.svg"
+  },
+  "vscode": {
+    "src": "/logos/vscode.svg",
+    "source": "https://raw.githubusercontent.com/devicons/devicon/master/icons/vscode/vscode-original.svg"
+  },
+  "langchain": {
+    "src": "/logos/langchain.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/langchain.svg"
+  },
+  "langgraph": {
+    "src": "/logos/langgraph.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/langgraph.svg"
+  },
+  "crewai": {
+    "src": "/logos/crewai.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/crewai.svg"
+  },
+  "claude": {
+    "src": "/logos/claude.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/claude.svg"
+  },
+  "ollama": {
+    "src": "/logos/ollama.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/ollama.svg"
+  },
+  "n8n": {
+    "src": "/logos/n8n.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/n8n.svg"
+  },
+  "shadcn": {
+    "src": "/logos/shadcn.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/shadcnui.svg"
+  },
+  "copilot": {
+    "src": "/logos/copilot.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/githubcopilot.svg"
+  },
+  "windsurf": {
+    "src": "/logos/windsurf.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/windsurf.svg"
+  },
+  "gemini": {
+    "src": "/logos/gemini.svg",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/googlegemini.svg"
+  },
+  "openai": {
+    "src": "/logos/openai.svg",
+    "source": "https://raw.githubusercontent.com/lobehub/lobe-icons/master/packages/static-svg/icons/openai.svg"
+  },
+  "groq": {
+    "src": "/logos/groq.svg",
+    "source": "https://raw.githubusercontent.com/lobehub/lobe-icons/master/packages/static-svg/icons/groq.svg"
+  }
+}
