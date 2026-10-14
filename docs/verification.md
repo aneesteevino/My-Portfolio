@@ -36,3 +36,23 @@ LCP 2.8 s, TBT 120 ms, CLS 0.001, speed index 2.7 s, no warnings.
 Deployment dpl_J7QgxpKdb2t8hCk4tj2dhspnUTqQ promoted. Public-site browser check
 confirmed chat answers and zero mobile overflow. Screenshots: chat-mobile.png
 and hero-chat-mobile.png in local artifacts/.
+
+## Gemini chat and portrait update — 14 October 2026
+
+- The hero ghost name now reads **MUHAMMAD ANEES** and remains inside the viewport
+  at 360, 390, 1440 and 1920 px.
+- The ID card uses the user's latest supplied portrait byte-for-byte, with a soft
+  black CSS shadow around its frame.
+- Robo Cat floats and greets visitors. Its native dialog animates open, messages
+  rise in, three dots show while waiting, and streamed text has a cursor. At
+  600 px and below it becomes an 88dvh bottom sheet with a fixed composer and
+  independently scrolling conversation and suggestion rows.
+- The server route selects an answer with the local verified-fact matcher before
+  Gemini 2.5 Flash Lite may rephrase it. Unsupported questions and provider
+  failures return the local response. The provider credential is server-only.
+- Seven Playwright tests pass. They cover all prior behavior plus the full hero
+  name, 360 px dialog bounds, streaming feedback, fallback answers, reduced
+  motion, no horizontal overflow, and axe WCAG A/AA checks.
+- The production build, lint and TypeScript checks pass. First-load JavaScript is
+  125 kB. Mobile chat visual review is saved as
+  `artifacts/chat-mobile-390x844.png`.

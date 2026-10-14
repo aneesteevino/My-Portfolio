@@ -22,6 +22,7 @@ test("responsive layout, assets, and console across required widths", async ({
     await page.goto("/");
     await page.evaluate(() => document.fonts.ready);
     await expect(page.locator("h1")).toBeVisible();
+    await expect(page.locator(".hero-ghost")).toHaveText("MUHAMMAD ANEES");
     const name = await page.locator(".hero-ghost").boundingBox();
     expect(name!.x).toBeGreaterThanOrEqual(0);
     expect(name!.x + name!.width).toBeLessThanOrEqual(width);
@@ -85,10 +86,38 @@ test("local chatbot answers verified facts and rejects unknowns", async ({ page 
   await expect(page.getByRole("log")).toContainText("77,000+");
   await page.keyboard.press("Escape"); await expect(launcher).toBeFocused();
   await page.setViewportSize({width:360,height:800}); await launcher.click();
-  await expect(page.getByRole("dialog")).toBeVisible();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await page.waitForTimeout(500);
+  const bounds = await dialog.boundingBox();
+  expect(bounds!.x).toBeGreaterThanOrEqual(0);
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(360);
+  expect(bounds!.y).toBeGreaterThanOrEqual(0);
+  expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(800);
+  await expect(page.getByLabel("Your question about Anees")).toBeVisible();
+  await expect(page.getByRole("button", {name:"Send",exact:true})).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(360);
   const violations = await new AxeBuilder({page}).withTags(["wcag2a","wcag2aa","wcag21aa"]).analyze();
   expect(violations.violations).toEqual([]);
+});
+
+test("chat shows a smooth generating state while a response streams", async ({ page }) => {
+  await page.route("**/api/chat", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await route.fulfill({
+      status: 200,
+      contentType: "text/plain; charset=utf-8",
+      body: "A verified streamed answer.",
+    });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Chat with Robo Cat about Anees" }).click();
+  await page.getByLabel("Your question about Anees").fill("What are his skills?");
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Thinking…" })).toBeVisible();
+  await expect(page.getByLabel("Robo Cat is thinking")).toBeVisible();
+  await expect(page.getByRole("log")).toContainText("A verified streamed answer.");
+  await expect(page.getByRole("button", { name: "Send", exact: true })).toBeVisible();
 });
 
 test("mobile menu traps focus, closes with Escape, and ID card supports keyboard", async ({
@@ -152,6 +181,7 @@ test("reduced motion and accessibility", async ({ page }) => {
   await page.goto("/");
   await page.waitForTimeout(1200);
   expect(await page.locator(".robo-launcher").evaluate(el => getComputedStyle(el).transitionDuration)).toBe("0s");
+  expect(await page.locator(".robo-launcher").evaluate(el => getComputedStyle(el).animationName)).toBe("none");
   for (const id of ["about", "skills", "work", "contact"]) {
     await page.locator(`#${id}`).scrollIntoViewIfNeeded();
   }

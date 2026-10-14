@@ -63,16 +63,28 @@ future **verified** data. It is not rendered and no achievement has been invente
 
 ## Robo Cat chat — 14 October 2026
 
-A small fixed robot-cat button opens an accessible, locally running chat. It uses
-extractive intent matching over the existing data.ts objects, with project aliases,
-follow-up context, source links, and a fallback for unsupported questions. It is
-not a generative LLM and does not promise arbitrary language understanding.
-No API key, paid service, network inference, model download or persisted chat logs
-are needed. Chat code loads only when opened. The native dialog supports Escape,
-keyboard focus containment, focus restoration and mobile scrolling.
+A small floating robot-cat button opens an accessible chat. A deterministic local
+matcher first selects the answer from the verified data in `src/lib/data.ts`.
+Gemini 2.5 Flash Lite can then phrase that exact extract more naturally; it never
+receives permission to add facts. Unsupported questions and provider failures use
+the local answer, so the portfolio remains useful without the external service.
+The API route streams plain text, applies a basic per-IP rate limit, and keeps the
+provider key on the server. The site does not persist chat history.
 
-The large hero pet is removed and the outlined name fits inside mobile viewports.
-The ID card retains the supplied public/portrait-card.png photo unchanged.
+For local Gemini responses, copy `.env.example` to `.env.local` and set:
+
+```sh
+GOOGLE_GENERATIVE_AI_API_KEY=your_server_only_key
+```
+
+Never prefix the key with `NEXT_PUBLIC_`. Without it, the same interface uses the
+local verified answers. The native dialog supports Escape, keyboard focus
+containment, focus restoration, animated streaming feedback, and a responsive
+bottom-sheet layout on small screens.
+
+The large hero pet is removed and the full outlined name fits inside mobile
+viewports. The ID card uses the supplied `public/portrait-card.png` photo with a
+soft black shadow.
 Archived video assets and their rebuild script are retained but never loaded by
 the page.
 
@@ -170,10 +182,12 @@ are recorded in `docs/verification.md`; do not interpret an unrun audit as passe
 
 ## GitHub and Vercel
 
-The project has no required service secrets. Import this repository into Vercel
-as a Next.js project, with the workspace root as the project root, and use the
-default `npm run build` command. Set `NEXT_PUBLIC_SITE_URL` if using a custom
-domain; otherwise Vercel's production domain supplies metadataBase automatically.
+Import this repository into Vercel as a Next.js project, with the workspace root
+as the project root, and use the default `npm run build` command. Add
+`GOOGLE_GENERATIVE_AI_API_KEY` as a sensitive, server-only environment variable
+to enable Gemini phrasing. The local fallback needs no secret. Set
+`NEXT_PUBLIC_SITE_URL` if using a custom domain; otherwise Vercel's production
+domain supplies metadataBase automatically.
 GitHub push and Vercel deployment need the corresponding authenticated accounts.
 No remote deployment or repository creation is claimed unless a verified URL
 appears in the delivery notes.

@@ -225,6 +225,7 @@ export default function About() {
   .about-facts{padding-top:95px}.about-facts dl{margin:24px 0 0}.about-facts dl>div{padding:18px 0;border-bottom:1px solid var(--line)}.about-facts dt{font-family:var(--font-mono);font-size:9px;color:#6d6b65;text-transform:uppercase;letter-spacing:.05em;margin-bottom:9px}.about-facts dd{margin:0;font-size:14px;line-height:1.6;overflow-wrap:anywhere}.about-facts dd span{color:#6d6b65;font-size:12px}.about-facts blockquote{font-family:var(--font-serif);font-style:italic;font-size:25px;line-height:1.2;margin:34px 0 0;color:#6d6b65}.about-facts blockquote>span{display:block;font-size:40px;line-height:.8;margin-bottom:4px}
   @media(max-width:1100px){.about-grid{grid-template-columns:minmax(0,1fr) 320px}.about-facts{grid-column:1/-1;padding-top:25px;display:grid;grid-template-columns:1fr 2fr;gap:24px}.about-facts dl{grid-column:2;grid-row:1/3;margin:0}.about-facts blockquote{margin:0}}
   @media(max-width:700px){.about-grid{grid-template-columns:minmax(0,1fr);gap:48px}.about-copy .section-heading em{display:inline}.about-summary{font-size:15px}.lanyard-wrap{padding-top:0}.about-facts{grid-column:auto;display:block;padding-top:0}.about-facts dl{margin:14px 0 0}.about-facts blockquote{margin-top:30px}.about-line{font-size:12px}}
+  .id-photo{box-shadow:0 10px 24px #0000002b,0 0 0 1px #00000012}
   `}</style>
     </section>
   );

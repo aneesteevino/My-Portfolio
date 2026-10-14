@@ -468,15 +468,23 @@ export const COPY = {
 export const CHAT = {
   title: "Ask Robo Cat",
   subtitle: "About Anees · résumé-grounded answers",
-  intro: "Hi! I can help you explore Anees’s projects, skills, experience and education. I search his portfolio facts locally — I’m not a generative AI model.",
+  intro:
+    "Hi! I can help you explore Anees’s projects, skills, experience and education. Every answer is grounded in his verified portfolio facts.",
   placeholder: "Ask about projects, skills or experience…",
   inputLabel: "Your question about Anees",
   send: "Send",
   close: "Close chat",
   clear: "Clear chat",
-  fallback: "I don’t have a verified answer to that in Anees’s portfolio. Try asking about his projects, skills, education or experience, or contact him directly.",
-  privacy: "No API key. Questions stay in this tab and are not stored or sent to a server.",
-  suggestions: ["Tell me about Anees", "What has he built?", "What are his skills?", "How can I contact him?"],
+  fallback:
+    "I don’t have a verified answer to that in Anees’s portfolio. Try asking about his projects, skills, education or experience, or contact him directly.",
+  privacy:
+    "Gemini phrases answers from verified portfolio facts. This site does not store your chat history.",
+  suggestions: [
+    "Tell me about Anees",
+    "What has he built?",
+    "What are his skills?",
+    "How can I contact him?",
+  ],
   source: "Source",
   resumeSource: "Résumé",
   workSource: "Portfolio work",
