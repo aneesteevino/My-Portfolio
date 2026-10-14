@@ -56,3 +56,20 @@ and hero-chat-mobile.png in local artifacts/.
 - The production build, lint and TypeScript checks pass. First-load JavaScript is
   125 kB. Mobile chat visual review is saved as
   `artifacts/chat-mobile-390x844.png`.
+
+## Capability deck and intent update — 15 October 2026
+
+- Replaced the long periodic grid with a compact capability deck. Seven horizontal
+  family tabs reveal only the selected discipline; logo chips animate into a
+  responsive two/three-column field with project evidence in a concise inspector.
+- Project panels now toggle closed from their spine control. Desktop panels also
+  expose a visible, labelled close button inside the expanded view.
+- Robo Cat now answers hiring, business-value, product-fit, and contribution
+  questions from verified skills, experience, and projects. It provides contextual
+  evidence for commerce/search, support, recruitment, legal, and travel use cases,
+  and explicitly identifies unsupported industry experience.
+- Weather, politics, sports, market prices, news, and other general-knowledge
+  prompts are declined. Private and unsupported personal questions remain blocked.
+- Seven Playwright tests pass, including 360–1920 px overflow checks, WCAG A/AA,
+  capability switching, project closing, business answers, and unrelated-query
+  refusal. Build passes at 126 kB first-load JavaScript.

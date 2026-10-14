@@ -51,7 +51,7 @@ customer data, analytics, scores, or screenshots.
 | --- | --- | --- |
 | Hero | AI Engineer | Responsive outlined name and résumé-based introduction |
 | 01 | About | Accessible flipping ID card, damped pointer-driven pendulum, quick facts |
-| 02 | Skills | All résumé skills and project technologies, periodic tiles, family filters, inspector |
+| 02 | Skills | Compact animated capability deck with family tabs, logos, and project evidence |
 | 03 | Work | Six résumé projects, expanding horizontal / mobile vertical accordion, CSS illustrations |
 | 04 | Certifications | Google / Coursera certification, ink-fill hover and keyboard focus |
 | 05 | Experience | Chronological education and employment path, scroll-drawn spine |
@@ -68,8 +68,12 @@ matcher first selects the answer from the verified data in `src/lib/data.ts`.
 Gemini 2.5 Flash Lite can then phrase that exact extract more naturally; it never
 receives permission to add facts. Unsupported questions and provider failures use
 the local answer, so the portfolio remains useful without the external service.
-The API route streams plain text, applies a basic per-IP rate limit, and keeps the
-provider key on the server. The site does not persist chat history.
+The API route returns plain text, applies a basic per-IP rate limit, and keeps the
+provider key on the server. The site does not persist chat history. Portfolio,
+hiring, project-fit, and business-value questions receive evidence-backed answers;
+unrelated general knowledge, news, weather, politics, and sports questions are
+declined. Business answers state domain gaps instead of inventing expertise or
+promising outcomes.
 
 For local Gemini responses, copy `.env.example` to `.env.local` and set:
 

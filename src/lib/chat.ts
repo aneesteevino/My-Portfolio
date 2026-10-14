@@ -29,6 +29,38 @@ const aliases: Record<string, string[]> = {
   career: ["career assistant", "career roadmap", "job recommendations"],
   chat: ["tdc chat", "chat service", "microservice"],
 };
+
+function businessValue(q: string): Answer {
+  const lines = [
+    "Based on his verified experience, Anees can contribute by:",
+    "• Building grounded AI assistants and RAG systems with semantic or vector search, source attribution, and context engineering.",
+    "• Connecting OpenAI, Claude, Gemini, and Groq through Python, FastAPI, Node.js, TypeScript, REST APIs, and intelligent model routing.",
+    "• Automating repeatable workflows with n8n, webhooks, microservices, and database-backed pipelines.",
+    "• Shipping the supporting product experience with Next.js, React, Tailwind CSS, SQL, MongoDB, and PostgreSQL.",
+  ];
+  if (/\b(search|catalog|ecommerce|e commerce|marketplace|recommend|discovery|sales)\b/.test(q))
+    lines.push("For product discovery or commerce, his PakWheels AI work shows semantic search across 77,000+ listings and recommendation-system skills.");
+  if (/\b(support|service|chatbot|assistant|knowledge|faq|customer)\b/.test(q))
+    lines.push("For support or internal knowledge, his chat-service and RAG experience fits grounded assistants, knowledge sync, and multi-model routing.");
+  if (/\b(recruit|hiring|hr|career|resume|cv|employee)\b/.test(q))
+    lines.push("For hiring workflows, his AI Resume Builder and Career Assistant cover role-specific rewriting, ATS scoring, recommendations, and career roadmaps.");
+  if (/\b(legal|law)\b/.test(q))
+    lines.push("For legal information workflows, his Pakistani Legal Assistant demonstrates citation-grounded retrieval, confidence scoring, and source attribution across five law domains.");
+  if (/\b(travel|tourism|hotel|destination)\b/.test(q))
+    lines.push("For travel products, his Pakistan Travel RAG System demonstrates semantic search over destination, hotel, and activity data for context-aware itineraries.");
+  if (/\b(health|healthcare|medical|finance|financial|real estate|property|education|school)\b/.test(q))
+    lines.push("His portfolio does not document a project in that specific domain, so domain expertise should be validated separately; the transferable fit is AI retrieval, automation, APIs, and product engineering.");
+  lines.push("The strongest hiring evidence is his current AI Engineer work and six shipped portfolio systems. For a precise fit assessment, share the project’s users, data sources, current stack, and main bottleneck.");
+  return {
+    text: lines.join("\n\n"),
+    sources: [
+      { label: CHAT.workSource, href: "#work" },
+      { label: CHAT.skillsSource, href: "#skills" },
+      ...resume,
+    ],
+    topic: "business-value",
+  };
+}
 /** Extractive answers only: user input never becomes instructions or generated claims. */
 export function answerQuestion(input: string, previousTopic?: string): Answer {
   const q = normal(input);
@@ -47,6 +79,14 @@ export function answerQuestion(input: string, previousTopic?: string): Answer {
     return fallback;
   if (/^(hi|hello|hey|salam|assalamualaikum|thanks|thank you)$/.test(q))
     return { text: CHAT.intro, sources: [] };
+  if (
+    /\b(weather|forecast|temperature|prime minister|president|pm of|capital of|currency|exchange rate|stock|crypto|bitcoin|cricket|football|sports|score|recipe|movie|song|news|election|politics)\b/.test(q)
+  )
+    return fallback;
+  if (
+    /\b(why (should|would).*hire|hire (him|anees|you)|contribute|contribution|benefit|valuable|value to|business|startup|organisation|organization|our company|my company|our team|my team|our project|my project|running project|client|services|consult|solve|solution|grow|growth|improve|help (us|me|our|my)|fit for|suitable for|what can (he|anees|you) do|how (can|could) (he|anees|you))\b/.test(q)
+  )
+    return businessValue(q);
   const matched = PROJECTS.filter((p) =>
     [p.title, ...(aliases[p.id] || [])].some((a) => has(q, a)),
   );
@@ -75,7 +115,7 @@ export function answerQuestion(input: string, previousTopic?: string): Answer {
       ],
       topic: projects.length === 1 ? projects[0].id : undefined,
     };
-  if (/\b(contact|email|phone|reach|hire|linkedin|github)\b/.test(q))
+  if (/\b(contact|email|phone|reach|linkedin|github)\b/.test(q))
     return {
       text: `${PROFILE.name}\n${PROFILE.email}\n${PROFILE.phone}`,
       sources: [
@@ -154,9 +194,7 @@ export function answerQuestion(input: string, previousTopic?: string): Answer {
   if (/\b(resume|cv|download)\b/.test(q))
     return { text: `${PROFILE.name} · ${PROFILE.role}`, sources: resume };
   if (
-    /\b(who|about|introduce|introduction|summary|specialize|specializes|specialization|role)\b/.test(
-      q,
-    )
+    /\b(about anees|about muhammad|who is (anees|muhammad anees)|introduce anees|introduction|professional summary|specialize|specializes|specialization|his role|anees role)\b/.test(q)
   )
     return {
       text: `${PROFILE.name} · ${PROFILE.role}\n\n${PROFILE.resumeSummary}`,
