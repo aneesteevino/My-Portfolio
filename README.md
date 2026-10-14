@@ -49,7 +49,7 @@ customer data, analytics, scores, or screenshots.
 
 | Order | Section | Component and interaction |
 | --- | --- | --- |
-| Hero | AI Engineer | Interactive CSS 3D robot cat, blink/float, keyboard and touch greeting, pause control |
+| Hero | AI Engineer | Responsive outlined name and résumé-based introduction |
 | 01 | About | Accessible flipping ID card, damped pointer-driven pendulum, quick facts |
 | 02 | Skills | All résumé skills and project technologies, periodic tiles, family filters, inspector |
 | 03 | Work | Six résumé projects, expanding horizontal / mobile vertical accordion, CSS illustrations |
@@ -61,14 +61,20 @@ customer data, analytics, scores, or screenshots.
 An unused `Achievements.tsx` provides the sticky gallery/count-up behavior for
 future **verified** data. It is not rendered and no achievement has been invented.
 
-## Hero and portrait update — 14 October 2026
+## Robo Cat chat — 14 October 2026
 
-The hero video is replaced by an interactive grayscale robot cat built with CSS
-transforms and shading, without WebGL or new dependencies. Activate it with tap,
-click, Enter or Space. A pause control and reduced-motion support stop decorative
-animation. The ID card uses the supplied `public/portrait-card.png` photo unchanged.
-The former video assets and rebuild script remain available but are not loaded
-by the page.
+A small fixed robot-cat button opens an accessible, locally running chat. It uses
+extractive intent matching over the existing data.ts objects, with project aliases,
+follow-up context, source links, and a fallback for unsupported questions. It is
+not a generative LLM and does not promise arbitrary language understanding.
+No API key, paid service, network inference, model download or persisted chat logs
+are needed. Chat code loads only when opened. The native dialog supports Escape,
+keyboard focus containment, focus restoration and mobile scrolling.
+
+The large hero pet is removed and the outlined name fits inside mobile viewports.
+The ID card retains the supplied public/portrait-card.png photo unchanged.
+Archived video assets and their rebuild script are retained but never loaded by
+the page.
 
 ## Rebuild the archived hero media
 
@@ -105,12 +111,6 @@ ffmpeg can be supplied using `--ffmpeg`, installed on PATH, or resolved from
 `imageio-ffmpeg`. Test another source's loop both visually and audibly; a fade
 removes a hard cut, but incompatible poses can still produce visible overlap.
 
-Browser audio policy is respected: try sound, fall back to muted playback, retry
-on the first user gesture. An explicit mute persists through scrolling. The video
-pauses below 35% hero visibility and when the tab is hidden. Reduced-motion users
-see the poster until they explicitly play. The video has a descriptive accessible
-name; a verbatim caption track has not been fabricated from the résumé.
-
 ## Fonts and logo credits
 
 The self-hosted fonts are Inter Tight Variable, Instrument Serif regular/italic,
@@ -142,7 +142,7 @@ screen-reader copy feedback are implemented. Skill inspector responds to focus;
 the ID card supports Enter/Space and tap. Content remains visible with JavaScript
 disabled. IntersectionObserver reveal transitions run once. `prefers-reduced-motion`
 disables Lenis and decorative CSS/rAF movement, avoids sticky horizontal motion,
-and prevents the hero from starting automatically. No custom cursor is used.
+and disables decorative transitions. No custom cursor is used.
 
 Component styles live in `<style>` elements. Shared classes use Tailwind's
 `@layer components`; base link and button resets live in `@layer base`.

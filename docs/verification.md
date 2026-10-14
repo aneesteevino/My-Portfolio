@@ -19,3 +19,20 @@
   Earlier caption limitation no longer applies to the rendered site.
 - Repository showcases are not represented as certified working live demos;
   see project-review.md for individual limitations.
+
+## Small Robo Cat chat update — 14 October 2026
+
+Supersedes the large pet described above. Hero now fits the entire outlined name
+at 360/390/1440/1920 px. A small fixed mascot opens a lazy-loaded native dialog.
+The chatbot extracts answers from portfolio data locally, links sources, supports
+project follow-ups and declines unsupported facts. No LLM, API key, request to an
+inference service, or persisted chat history. Not a general-purpose AI model.
+
+Six tests pass, including chat-open axe, unknown facts, follow-ups, mobile layout,
+focus restoration and the existing portfolio behavior. Build passes, first-load
+JS 125 KB. Latest mobile Lighthouse: Performance 94, Accessibility 100; FCP 1.7 s,
+LCP 2.8 s, TBT 120 ms, CLS 0.001, speed index 2.7 s, no warnings.
+
+Deployment dpl_J7QgxpKdb2t8hCk4tj2dhspnUTqQ promoted. Public-site browser check
+confirmed chat answers and zero mobile overflow. Screenshots: chat-mobile.png
+and hero-chat-mobile.png in local artifacts/.

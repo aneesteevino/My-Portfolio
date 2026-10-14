@@ -1,3 +1,4 @@
+import Pet from "./hero/Pet";
 import Navigation from "./Navigation";
 import Hero from "./hero/Hero";
 import About from "./sections/About";
@@ -27,6 +28,7 @@ export default function App() {
         {ACHIEVEMENTS.length > 0 && <Achievements />}
         <Contact />
       </main>
+      <Pet />
       <SmoothScroll />
       <RevealObserver />
     </>
