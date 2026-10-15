@@ -65,7 +65,7 @@ future **verified** data. It is not rendered and no achievement has been invente
 
 A small floating robot-cat button opens an accessible chat. A deterministic intent
 and context layer retrieves every relevant fact from `src/lib/data.ts`, including
-compound requests and project follow-ups. Gemini 2.5 Flash Lite may phrase that
+compound requests and project follow-ups. Gemini 3.5 Flash Lite may phrase that
 structured context more naturally; it never receives permission to add facts.
 When Gemini fails, the interface identifies the response as a verified local
 fallback rather than presenting it as provider output. The API applies a basic
