@@ -76,6 +76,7 @@ export default function Navigation() {
     const menuButton = menu.current;
     const old = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    document.body.classList.add("mobile-menu-open");
     lockScroll(true);
     const main = document.querySelector("main");
     main?.setAttribute("inert", "");
@@ -110,6 +111,7 @@ export default function Navigation() {
     return () => {
       cancelAnimationFrame(focusFrame);
       document.body.style.overflow = old;
+      document.body.classList.remove("mobile-menu-open");
       lockScroll(false);
       main?.removeAttribute("inert");
       document.removeEventListener("keydown", key);

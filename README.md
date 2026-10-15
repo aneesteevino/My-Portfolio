@@ -61,19 +61,21 @@ customer data, analytics, scores, or screenshots.
 An unused `Achievements.tsx` provides the sticky gallery/count-up behavior for
 future **verified** data. It is not rendered and no achievement has been invented.
 
-## Robo Cat chat — 14 October 2026
+## Robo Cat chat — 15 October 2026
 
-A small floating robot-cat button opens an accessible chat. A deterministic local
-matcher first selects the answer from the verified data in `src/lib/data.ts`.
-Gemini 2.5 Flash Lite can then phrase that exact extract more naturally; it never
-receives permission to add facts. Unsupported questions and provider failures use
-the local answer, so the portfolio remains useful without the external service.
-The API route returns plain text, applies a basic per-IP rate limit, and keeps the
-provider key on the server. The site does not persist chat history. Portfolio,
-hiring, project-fit, and business-value questions receive evidence-backed answers;
-unrelated general knowledge, news, weather, politics, and sports questions are
-declined. Business answers state domain gaps instead of inventing expertise or
-promising outcomes.
+A small floating robot-cat button opens an accessible chat. A deterministic intent
+and context layer retrieves every relevant fact from `src/lib/data.ts`, including
+compound requests and project follow-ups. Gemini 2.5 Flash Lite may phrase that
+structured context more naturally; it never receives permission to add facts.
+When Gemini fails, the interface identifies the response as a verified local
+fallback rather than presenting it as provider output. The API applies a basic
+per-IP rate limit and keeps the provider key on the server. Conversation state is
+kept in session storage so closing and reopening the dialog preserves the current
+page-session chat; **Clear Chat** explicitly removes it. Portfolio, comparison,
+hiring, project-fit, and business qualification questions receive evidence-backed
+answers. General knowledge, news, weather, politics, and sports are declined.
+Business answers separate verified evidence from proposed scope, discovery needs,
+risks, and unavailable timeline or budget facts.
 
 For local Gemini responses, copy `.env.example` to `.env.local` and set:
 
@@ -83,8 +85,8 @@ GOOGLE_GENERATIVE_AI_API_KEY=your_server_only_key
 
 Never prefix the key with `NEXT_PUBLIC_`. Without it, the same interface uses the
 local verified answers. The native dialog supports Escape, keyboard focus
-containment, focus restoration, animated streaming feedback, and a responsive
-bottom-sheet layout on small screens.
+containment, focus restoration, an auto-growing composer, Enter/Shift+Enter,
+Stop and Retry controls, guarded auto-scroll, and a responsive bottom-sheet layout.
 
 The large hero pet is removed and the full outlined name fits inside mobile
 viewports. The ID card uses the supplied `public/portrait-card.png` photo with a
@@ -172,10 +174,12 @@ npm run test:ui
 ```
 
 For an existing Chromium installation, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to
-its absolute executable path. Tests cover desktop/mobile widths, horizontal
-overflow, asset loading, runtime errors, sound and visibility, keyboard menu/card
-behavior, skill filtering, accordions, clipboard, PDF download, reduced motion,
-and axe accessibility checks. Screenshots and JSON results go to `artifacts/`.
+its absolute executable path. Tests cover 360, 390, 1440, and 1920 px widths;
+navigation; all skill families; mouse, touch, and keyboard project activation;
+clipboard success/failure; the PDF response signature; chat input and persistence;
+Stop and Retry; compound/business/comparison/unknown/injection and multi-turn chat
+scenarios; overlay stacking; reduced motion; runtime errors; and axe A/AA checks.
+Screenshots and JSON results go to `artifacts/`.
 
 ```sh
 npx lighthouse http://localhost:3000 --chrome-flags="--headless" --only-categories=performance,accessibility --output=html --output-path=artifacts/lighthouse.html
@@ -195,3 +199,8 @@ domain supplies metadataBase automatically.
 GitHub push and Vercel deployment need the corresponding authenticated accounts.
 No remote deployment or repository creation is claimed unless a verified URL
 appears in the delivery notes.
+
+`public/resume.pdf` is the single résumé download and chatbot source. Keep ignore
+patterns case-safe: an unanchored `Resume.pdf` entry in `.vercelignore` excludes
+the lowercase public asset on Vercel's Windows CLI path matching and causes a
+production 404. The repository intentionally does not contain that pattern.

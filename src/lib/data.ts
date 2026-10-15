@@ -469,10 +469,17 @@ export const CHAT = {
   title: "Ask Robo Cat",
   subtitle: "About Anees · résumé-grounded answers",
   intro:
-    "Hi! I can help you explore Anees’s projects, skills, experience and education. Every answer is grounded in his verified portfolio facts.",
+    "Hi! I’m Robo Cat, Anees’s portfolio guide. Ask me about his projects, skills, experience, business fit, or verified contact details.",
   placeholder: "Ask about projects, skills or experience…",
   inputLabel: "Your question about Anees",
   send: "Send",
+  stop: "Stop",
+  retry: "Retry",
+  stopped: "Generation stopped. You can retry this question when you’re ready.",
+  error:
+    "I couldn’t reach the portfolio assistant. Your question was not answered. Please retry.",
+  localFallbackNotice:
+    "Gemini was unavailable, so this is the verified local portfolio answer.",
   close: "Close chat",
   clear: "Clear chat",
   fallback:

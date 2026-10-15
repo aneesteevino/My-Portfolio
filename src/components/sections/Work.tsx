@@ -28,32 +28,11 @@ export default function Work() {
             <article
               className={`project-panel ${active === i ? "expanded" : ""}`}
               key={p.id}
-              onPointerEnter={(e) => {
-                if (
-                  e.pointerType === "mouse" &&
-                  !e.currentTarget.parentElement?.contains(
-                    document.activeElement,
-                  )
-                )
-                  setActive(i);
-              }}
-              onPointerMove={(e) => {
-                if (
-                  e.pointerType === "mouse" &&
-                  Math.abs(e.movementX) + Math.abs(e.movementY) > 0
-                )
-                  setActive(i);
-              }}
-              onFocusCapture={() => setActive(i)}
             >
               <button
                 className="project-spine"
                 aria-expanded={active === i}
                 aria-controls={`project-${p.id}`}
-                onPointerDown={(event) => {
-                  if (event.pointerType === "mouse") event.preventDefault();
-                }}
-                onFocus={() => setActive(i)}
                 onClick={() => setActive((current) => (current === i ? null : i))}
               >
                 <span className="eyebrow">{p.index}</span>

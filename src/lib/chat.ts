@@ -6,199 +6,516 @@ import {
   EDUCATION,
   CERTIFICATIONS,
   CHAT,
+  type Project,
 } from "./data";
+
+export type AnswerSource = { label: string; href: string };
+export type AnswerEvidence = { claim: string; sources: AnswerSource[] };
 export type Answer = {
   text: string;
-  sources: { label: string; href: string }[];
+  sources: AnswerSource[];
+  evidence?: AnswerEvidence[];
   topic?: string;
+  intents?: string[];
+  kind?: "answer" | "greeting" | "unknown" | "refusal" | "business";
 };
-const normal = (s: string) =>
-  s
+
+const normal = (value: string) =>
+  value
     .toLowerCase()
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
-const has = (q: string, term: string) => ` ${q} `.includes(` ${normal(term)} `);
-const resume = [{ label: CHAT.resumeSource, href: PROFILE.resume }];
+const has = (question: string, term: string) =>
+  (" " + question + " ").includes(" " + normal(term) + " ");
+const resumeSource: AnswerSource = {
+  label: CHAT.resumeSource,
+  href: PROFILE.resume,
+};
+const contactSources: AnswerSource[] = [
+  { label: "Email Anees", href: "mailto:" + PROFILE.email },
+  { label: "Call Anees", href: PROFILE.phoneHref },
+  { label: "LinkedIn", href: PROFILE.linkedin },
+];
 const aliases: Record<string, string[]> = {
   pakwheels: ["pakwheels", "cars", "car", "vehicle"],
-  legal: ["legal", "law"],
-  travel: ["travel", "itinerary", "itineraries"],
+  legal: ["legal assistant", "legal", "law"],
+  travel: ["travel rag", "travel", "itinerary", "itineraries"],
   resume: ["resume builder", "cv builder", "ats"],
   career: ["career assistant", "career roadmap", "job recommendations"],
-  chat: ["tdc chat", "chat service", "microservice"],
+  chat: ["tdc ai chat", "chat service", "microservice"],
 };
 
-function businessValue(q: string): Answer {
-  const lines = [
-    "Based on his verified experience, Anees can contribute by:",
-    "• Building grounded AI assistants and RAG systems with semantic or vector search, source attribution, and context engineering.",
-    "• Connecting OpenAI, Claude, Gemini, and Groq through Python, FastAPI, Node.js, TypeScript, REST APIs, and intelligent model routing.",
-    "• Automating repeatable workflows with n8n, webhooks, microservices, and database-backed pipelines.",
-    "• Shipping the supporting product experience with Next.js, React, Tailwind CSS, SQL, MongoDB, and PostgreSQL.",
-  ];
-  if (/\b(search|catalog|ecommerce|e commerce|marketplace|recommend|discovery|sales)\b/.test(q))
-    lines.push("For product discovery or commerce, his PakWheels AI work shows semantic search across 77,000+ listings and recommendation-system skills.");
-  if (/\b(support|service|chatbot|assistant|knowledge|faq|customer)\b/.test(q))
-    lines.push("For support or internal knowledge, his chat-service and RAG experience fits grounded assistants, knowledge sync, and multi-model routing.");
-  if (/\b(recruit|hiring|hr|career|resume|cv|employee)\b/.test(q))
-    lines.push("For hiring workflows, his AI Resume Builder and Career Assistant cover role-specific rewriting, ATS scoring, recommendations, and career roadmaps.");
-  if (/\b(legal|law)\b/.test(q))
-    lines.push("For legal information workflows, his Pakistani Legal Assistant demonstrates citation-grounded retrieval, confidence scoring, and source attribution across five law domains.");
-  if (/\b(travel|tourism|hotel|destination)\b/.test(q))
-    lines.push("For travel products, his Pakistan Travel RAG System demonstrates semantic search over destination, hotel, and activity data for context-aware itineraries.");
-  if (/\b(health|healthcare|medical|finance|financial|real estate|property|education|school)\b/.test(q))
-    lines.push("His portfolio does not document a project in that specific domain, so domain expertise should be validated separately; the transferable fit is AI retrieval, automation, APIs, and product engineering.");
-  lines.push("The strongest hiring evidence is his current AI Engineer work and six shipped portfolio systems. For a precise fit assessment, share the project’s users, data sources, current stack, and main bottleneck.");
+function projectSource(project: Project): AnswerSource[] {
+  return project.github
+    ? [{ label: project.title + " repository", href: project.github }]
+    : [resumeSource];
+}
+
+function projectText(project: Project) {
+  return (
+    project.title +
+    "\n" +
+    project.description +
+    "\n\nKey capabilities\n" +
+    project.features.map((feature) => "• " + feature).join("\n") +
+    "\n\nStack\n" +
+    project.tech.join(", ")
+  );
+}
+
+function matchedProjects(question: string) {
+  return PROJECTS.filter((project) =>
+    [project.title, ...(aliases[project.id] || [])].some((alias) =>
+      has(question, alias),
+    ),
+  );
+}
+
+function projectEvidence(project: Project): AnswerEvidence {
+  return { claim: project.description, sources: projectSource(project) };
+}
+
+function compareProjects(question: string, previousTopic?: string): Answer {
+  const matched = matchedProjects(question);
+  const previous = PROJECTS.find((project) => project.id === previousTopic);
+  const strongest = /\b(strongest|best|standout|most impressive)\b/.test(question);
+  const primary = strongest
+    ? PROJECTS.find((project) => project.id === "pakwheels")!
+    : previous ?? matched[0] ?? PROJECTS[0];
+  const comparison =
+    matched.find((project) => project.id !== primary.id) ??
+    PROJECTS.find(
+      (project) => project.id === "legal" && project.id !== primary.id,
+    ) ??
+    PROJECTS.find((project) => project.id !== primary.id)!;
+  const opening = strongest
+    ? "“Strongest” depends on the criterion. For demonstrated scale and search performance, PakWheels AI is the clearest standout."
+    : primary.title + " and " + comparison.title + " demonstrate different strengths.";
   return {
-    text: lines.join("\n\n"),
-    sources: [
-      { label: CHAT.workSource, href: "#work" },
-      { label: CHAT.skillsSource, href: "#skills" },
-      ...resume,
-    ],
-    topic: "business-value",
+    kind: "answer",
+    intents: ["comparison", "project"],
+    topic: primary.id,
+    text:
+      opening +
+      "\n\n" +
+      primary.title +
+      "\n" +
+      primary.description +
+      "\n\nCompared with " +
+      comparison.title +
+      "\n" +
+      comparison.description +
+      "\n\nThe evidence supports choosing " +
+      primary.title +
+      " for scale and natural-language search, while " +
+      comparison.title +
+      " is stronger evidence for citation-grounded, higher-trust retrieval.",
+    sources: [...projectSource(primary), ...projectSource(comparison)],
+    evidence: [projectEvidence(primary), projectEvidence(comparison)],
   };
 }
-/** Extractive answers only: user input never becomes instructions or generated claims. */
-export function answerQuestion(input: string, previousTopic?: string): Answer {
-  const q = normal(input);
-  const fallback = {
-    text: CHAT.fallback,
-    sources: [{ label: CHAT.contactSource, href: "#contact" }],
+
+function hiringAnswer(): Answer {
+  const pakwheels = PROJECTS.find((project) => project.id === "pakwheels")!;
+  const chat = PROJECTS.find((project) => project.id === "chat")!;
+  return {
+    kind: "business",
+    intents: ["business-fit", "experience"],
+    text:
+      "Why consider Anees\n" +
+      "• He works as an AI Engineer building multi-model AI services, RAG pipelines, knowledge sync, and intelligent routing.\n" +
+      "• His portfolio shows delivery across Python, FastAPI, Node.js, TypeScript, databases, and React.\n" +
+      "• PakWheels AI demonstrates semantic search across 77,000+ listings with sub-second natural-language queries.\n" +
+      "• His legal assistant demonstrates citation-grounded retrieval, confidence scoring, and source attribution.\n\n" +
+      "The strongest case is practical AI product delivery rather than a generic tool list. Team fit, availability, and employment terms require a conversation.\n\n" +
+      "Contact Anees to discuss the role and expected outcomes.",
+    sources: contactSources,
+    evidence: [
+      {
+        claim:
+          "Current AI Engineer work includes multi-model services, RAG pipelines, knowledge sync, and intelligent routing.",
+        sources: [resumeSource],
+      },
+      projectEvidence(pakwheels),
+      projectEvidence(chat),
+    ],
   };
-  if (!q || input.length > 500)
-    return input.length > 500 ? { text: CHAT.limit, sources: [] } : fallback;
-  // Never infer private, evaluative or time-sensitive facts from neighbouring matches.
-  if (
-    /\b(salary|age|birthday|birth|married|religion|politic|address|home|password|secret|available|availability|rate|pricing|hobbies|hobby|favourite|favorite|best|worst|guarantee|ignore|pretend|invent|instructions|system prompt)\b/.test(
-      q,
-    )
-  )
-    return fallback;
-  if (/^(hi|hello|hey|salam|assalamualaikum|thanks|thank you)$/.test(q))
-    return { text: CHAT.intro, sources: [] };
-  if (
-    /\b(weather|forecast|temperature|prime minister|president|pm of|capital of|currency|exchange rate|stock|crypto|bitcoin|cricket|football|sports|score|recipe|movie|song|news|election|politics)\b/.test(q)
-  )
-    return fallback;
-  if (
-    /\b(why (should|would).*hire|hire (him|anees|you)|contribute|contribution|benefit|valuable|value to|business|startup|organisation|organization|our company|my company|our team|my team|our project|my project|running project|client|services|consult|solve|solution|grow|growth|improve|help (us|me|our|my)|fit for|suitable for|what can (he|anees|you) do|how (can|could) (he|anees|you))\b/.test(q)
-  )
-    return businessValue(q);
-  const matched = PROJECTS.filter((p) =>
-    [p.title, ...(aliases[p.id] || [])].some((a) => has(q, a)),
-  );
-  const followup =
-    /^(tell me more|more|what (tech|technology|stack) does (it|that) use|what about (its )?(tech|stack)|its (tech|stack)|repo|github link|link|features|details)$/.test(
-      q,
+}
+
+function businessQualification(question: string): Answer {
+  const pakwheels = PROJECTS.find((project) => project.id === "pakwheels")!;
+  const legal = PROJECTS.find((project) => project.id === "legal")!;
+  const chat = PROJECTS.find((project) => project.id === "chat")!;
+  const ecommerce =
+    /\b(ecommerce|e commerce|marketplace|catalog|order|retail)\b/.test(question);
+  const support =
+    /\b(customer|support|help center|knowledge|assistant|rag|chatbot)\b/.test(
+      question,
     );
-  const projects = matched.length
-    ? matched
-    : followup
-      ? PROJECTS.filter((p) => p.id === previousTopic)
-      : [];
-  if (projects.length)
-    return {
-      text: projects
-        .map(
-          (p) =>
-            `${p.title}\n${p.description}\n\nFeatures: ${p.features.join(" · ")}\nTechnologies: ${p.tech.join(", ")}`,
-        )
-        .join("\n\n"),
-      sources: [
-        { label: CHAT.resumeSource, href: PROFILE.resume },
-        ...projects.flatMap((p) =>
-          p.github ? [{ label: `${p.title} · GitHub`, href: p.github }] : [],
+  const fit =
+    ecommerce && support
+      ? "Strong technical fit for a discovery-led MVP; domain-specific production fit should be validated."
+      : "Promising technical fit, with the exact scope and domain requirements still to validate.";
+  return {
+    kind: "business",
+    intents: ["business-fit", "project", "skills", "contact"],
+    topic: "business-fit",
+    text:
+      "Fit assessment\n" +
+      fit +
+      "\n\nVerified evidence\n" +
+      "• PakWheels AI: semantic search over 77,000+ listings with sub-second natural-language queries.\n" +
+      "• Pakistani Legal Assistant: citation-grounded RAG with confidence scoring and source attribution.\n" +
+      "• TDC AI work: MongoDB-backed RAG, knowledge sync, prompt/context engineering, and multi-model routing.\n" +
+      "• Full-stack delivery with FastAPI, Node.js, TypeScript, React, databases, APIs, and automation.\n\n" +
+      "Proposed MVP — not completed portfolio work\n" +
+      "• Permission-aware ingestion for help-center and order data.\n" +
+      "• Retrieval with citations and order lookup through controlled tools.\n" +
+      "• Support chat with human escalation and feedback capture.\n" +
+      "• Evaluation set, hallucination checks, logging, and basic monitoring.\n\n" +
+      "Discovery questions\n" +
+      "• Which support channels, order systems, user roles, languages, and escalation rules are required?\n" +
+      "• What data can be indexed, and what must remain live behind authenticated APIs?\n\n" +
+      "Key risks\nData quality, permissions, PII, hallucinations, evaluation coverage, human escalation, and integration complexity.\n\n" +
+      "Timeline and budget\nThe portfolio does not verify an exact timeline, rate, or budget. Those require discovery and access to the current stack.\n\n" +
+      "Contact Anees with the goal, users, data sources, integrations, deadline, budget range, and success criteria.",
+    sources: contactSources,
+    evidence: [
+      projectEvidence(pakwheels),
+      projectEvidence(legal),
+      projectEvidence(chat),
+      {
+        claim:
+          "Current experience includes MongoDB-backed RAG, knowledge sync, prompt/context engineering, and multi-model services.",
+        sources: [resumeSource],
+      },
+    ],
+  };
+}
+
+function contactAnswer(includeInquiry: boolean): Answer {
+  return {
+    kind: "answer",
+    intents: ["contact", ...(includeInquiry ? ["inquiry-guidance"] : [])],
+    text: includeInquiry
+      ? PROFILE.email +
+        "\n" +
+        PROFILE.phone +
+        "\n\nFor a useful project inquiry, include:\n" +
+        "• Project goal\n• Target users\n• Data sources\n• Current stack\n" +
+        "• Desired integrations\n• Deadline\n• Approximate budget range\n• Success criteria"
+      : PROFILE.email + "\n" + PROFILE.phone,
+    sources: contactSources,
+    evidence: [
+      {
+        claim:
+          "Verified contact details: " + PROFILE.email + " and " + PROFILE.phone + ".",
+        sources: [resumeSource],
+      },
+    ],
+  };
+}
+
+function unknownAnswer(): Answer {
+  return {
+    kind: "unknown",
+    intents: ["unknown", "contact"],
+    text:
+      "Anees’s exact rate, salary expectation, and current availability are not verified in the portfolio, so I won’t guess.\n\n" +
+      "Contact him directly for current terms and scheduling:\n" +
+      PROFILE.email +
+      "\n" +
+      PROFILE.phone,
+    sources: contactSources,
+  };
+}
+
+function skillAnswer(question: string): Answer {
+  const matched = SKILL_GROUPS.flatMap((group) =>
+    group.skills
+      .filter((skill) =>
+        [skill.name, ...(skill.aliases || [])].some((alias) =>
+          has(question, alias),
         ),
-      ],
-      topic: projects.length === 1 ? projects[0].id : undefined,
-    };
-  if (/\b(contact|email|phone|reach|linkedin|github)\b/.test(q))
-    return {
-      text: `${PROFILE.name}\n${PROFILE.email}\n${PROFILE.phone}`,
-      sources: [
-        { label: "Email", href: `mailto:${PROFILE.email}` },
-        { label: "GitHub", href: PROFILE.github },
-        { label: "LinkedIn", href: PROFILE.linkedin },
-      ],
-    };
-  if (
-    /\b(education|study|studied|studying|university|degree|cgpa|gpa|graduate|graduation|college)\b/.test(
-      q,
-    )
-  )
-    return {
-      text: EDUCATION.map(
-        (e) => `${e.title}\n${e.place}\n${e.date}\n${e.details.join("\n")}`,
-      ).join("\n\n"),
-      sources: resume,
-    };
-  if (
-    /\b(certification|certifications|certificate|certificates|course|courses)\b/.test(
-      q,
-    )
-  )
-    return {
-      text: CERTIFICATIONS.map(
-        (c) => `${c.title}\n${c.issuer} · ${c.year}`,
-      ).join("\n\n"),
-      sources: resume,
-    };
-  if (
-    /\b(experience|internship|intern|employment|employer|company|companies|job|jobs|deft|current role|work history)\b/.test(
-      q,
-    ) ||
-    /where.*work/.test(q)
-  )
-    return {
-      text: EXPERIENCE.map(
-        (e) => `${e.title} · ${e.place}\n${e.date}\n${e.details.join("\n")}`,
-      ).join("\n\n"),
-      sources: resume,
-    };
-  const skills = SKILL_GROUPS.flatMap((g) => g.skills).filter((s) =>
-    [s.name, ...(s.aliases || [])].some((a) => has(q, a)),
+      )
+      .map((skill) => ({ ...skill, family: group.family })),
   );
-  if (skills.length)
+  if (matched.length) {
     return {
-      text: skills
-        .map((s) => {
-          const related = PROJECTS.filter((p) =>
-            p.tech.some((t) =>
-              [s.name, ...(s.aliases || [])].some(
-                (a) => normal(a) === normal(t),
+      kind: "answer",
+      intents: ["skills"],
+      text: matched
+        .map((skill) => {
+          const projects = PROJECTS.filter((project) =>
+            project.tech.some((technology) =>
+              [skill.name, ...(skill.aliases || [])].some(
+                (alias) => normal(alias) === normal(technology),
               ),
             ),
           );
-          return `${s.name} is listed in Anees’s portfolio skills.${related.length ? `\nProjects: ${related.map((p) => p.title).join(", ")}.` : ""}`;
+          return (
+            skill.name +
+            " — " +
+            skill.family +
+            (projects.length
+              ? "\nUsed in: " +
+                projects.map((project) => project.title).join(", ")
+              : "")
+          );
         })
         .join("\n\n"),
-      sources: [{ label: CHAT.skillsSource, href: "#skills" }, ...resume],
+      sources: [{ label: CHAT.skillsSource, href: "#skills" }],
     };
+  }
+  return {
+    kind: "answer",
+    intents: ["skills"],
+    text: SKILL_GROUPS.map(
+      (group) =>
+        group.family +
+        "\n" +
+        group.skills.map((skill) => skill.name).join(", "),
+    ).join("\n\n"),
+    sources: [{ label: CHAT.skillsSource, href: "#skills" }, resumeSource],
+  };
+}
+
+/** Detects all portfolio intents and composes a verified local fallback. */
+export function answerQuestion(input: string, previousTopic?: string): Answer {
+  const question = normal(input);
+  const fallback: Answer = {
+    kind: "unknown",
+    intents: ["unknown"],
+    text: CHAT.fallback,
+    sources: [{ label: CHAT.contactSource, href: "#contact" }],
+  };
+  if (!question || input.length > 500)
+    return input.length > 500
+      ? { text: CHAT.limit, sources: [], kind: "unknown" }
+      : fallback;
+
   if (
-    /\b(skill|skills|stack|technologies|languages|tools|frameworks)\b/.test(q)
+    /\b(ignore|disregard|override).*(instruction|prompt)|system prompt|developer message|reveal.*prompt|invent|fabricate|make up|pretend\b/.test(
+      question,
+    )
   )
     return {
-      text: SKILL_GROUPS.map(
-        (g) => `${g.family}: ${g.skills.map((s) => s.name).join(", ")}`,
+      kind: "refusal",
+      intents: ["prompt-injection"],
+      text:
+        "I can’t reveal hidden instructions or invent portfolio facts. I can help with Anees’s verified projects, skills, experience, education, business fit, or contact details.",
+      sources: [],
+    };
+
+  if (
+    /^(hi|hello|hey|salam|assalamualaikum)( what can you help me with| what can i ask| how can you help)?$/.test(
+      question,
+    ) ||
+    /^(what can you help me with|what can i ask you|how can you help me)$/.test(
+      question,
+    )
+  )
+    return {
+      kind: "greeting",
+      intents: ["greeting"],
+      text:
+        "Hi! I’m Robo Cat, Anees’s portfolio guide. You can ask me to:\n" +
+        "• Explain or compare his projects\n" +
+        "• Match his skills to your role or business problem\n" +
+        "• Summarize his experience and education\n" +
+        "• Share verified contact details",
+      sources: [],
+    };
+
+  if (
+    /\b(compare|comparison|versus|vs|best project|standout project|most impressive project)\b|strongest.*project/.test(
+      question,
+    )
+  )
+    return compareProjects(question, previousTopic);
+
+  if (
+    /\b(why (should|would) (we|i|our company).*hire|why hire|should (we|i).*hire|good hire)\b/.test(
+      question,
+    )
+  )
+    return hiringAnswer();
+
+  if (
+    /\b(business|company|startup|client|customer support|help center|mvp|scope|proposal|grow|growth|contribute|benefit|project fit|good fit|running project|how (can|could|would) (he|anees)|timeline|budget)\b/.test(
+      question,
+    )
+  )
+    return businessQualification(question);
+
+  if (
+    /\b(rate|salary|salary expectation|availability|available|next monday|pricing|hourly|cost to hire|birthday|age|married|religion|address|home|password|secret)\b/.test(
+      question,
+    )
+  )
+    return unknownAnswer();
+
+  if (
+    /\b(weather|forecast|temperature|prime minister|president|pm of|capital of|currency|exchange rate|stock|crypto|bitcoin|cricket|football|sports|score|recipe|movie|song|news|election|politics)\b/.test(
+      question,
+    )
+  )
+    return fallback;
+
+  const wantsInquiry =
+    /\b(project inquiry|inquiry|what should i include|proposal details|contact.*include)\b/.test(
+      question,
+    );
+  const wantsContact =
+    /\b(contact|email|phone|reach|linkedin|github|call him)\b/.test(question);
+  if (wantsContact || wantsInquiry) return contactAnswer(wantsInquiry);
+
+  const projects = matchedProjects(question);
+  const previous = PROJECTS.find((project) => project.id === previousTopic);
+  const followupStack =
+    /\b(what|which).*(stack|tech|technology)|stack does it use|tech does it use\b/.test(
+      question,
+    );
+  const followupWhy =
+    /\bwhy.*useful|what.*useful|why does (it|that) matter|benefit of (it|that)\b/.test(
+      question,
+    );
+  if ((followupStack || followupWhy) && previous) {
+    return {
+      kind: "answer",
+      intents: ["project", followupStack ? "skills" : "business-fit"],
+      topic: previous.id,
+      text: followupStack
+        ? previous.title + " uses " + previous.tech.join(", ") + "."
+        : previous.title +
+          " is useful because it delivers: " +
+          previous.features.join(", ") +
+          ". " +
+          previous.description,
+      sources: projectSource(previous),
+      evidence: [projectEvidence(previous)],
+    };
+  }
+  if (projects.length) {
+    const project = projects[0];
+    return {
+      kind: "answer",
+      intents: ["project"],
+      topic: project.id,
+      text: projectText(project),
+      sources: projectSource(project),
+      evidence: [projectEvidence(project)],
+    };
+  }
+
+  const intents: string[] = [];
+  if (
+    /\b(skill|skills|stack|technologies|languages|tools|frameworks|python|typescript|javascript|rag|fastapi|react|node)\b/.test(
+      question,
+    )
+  )
+    intents.push("skills");
+  if (
+    /\b(experience|internship|intern|employment|employer|job|jobs|deft|current role|work history)\b/.test(
+      question,
+    ) || /where.*work/.test(question)
+  )
+    intents.push("experience");
+  if (
+    /\b(education|study|studied|studying|university|degree|cgpa|gpa|graduate|graduation|college)\b/.test(
+      question,
+    )
+  )
+    intents.push("education");
+  if (/\b(certification|certificate|course)\b/.test(question))
+    intents.push("certifications");
+  if (/\b(project|projects|built|build|portfolio work)\b/.test(question))
+    intents.push("projects");
+  if (
+    /\b(about anees|about muhammad|who is (anees|muhammad anees)|introduce anees|professional summary|specialize|specialization|his role|anees role)\b/.test(
+      question,
+    )
+  )
+    intents.push("profile");
+
+  const sections: string[] = [];
+  const sources: AnswerSource[] = [];
+  if (intents.includes("profile")) {
+    sections.push(
+      PROFILE.name + " · " + PROFILE.role + "\n" + PROFILE.resumeSummary,
+    );
+    sources.push(resumeSource);
+  }
+  if (intents.includes("skills")) {
+    const answer = skillAnswer(question);
+    sections.push(answer.text);
+    sources.push(...answer.sources);
+  }
+  if (intents.includes("experience")) {
+    sections.push(
+      EXPERIENCE.map(
+        (entry) =>
+          entry.title +
+          " · " +
+          entry.place +
+          "\n" +
+          entry.date +
+          "\n" +
+          entry.details.join("\n"),
       ).join("\n\n"),
-      sources: [{ label: CHAT.skillsSource, href: "#skills" }, ...resume],
-    };
-  if (/\b(project|projects|built|build|portfolio|work)\b/.test(q))
+    );
+    sources.push(resumeSource);
+  }
+  if (intents.includes("education")) {
+    sections.push(
+      EDUCATION.map(
+        (entry) =>
+          entry.title +
+          "\n" +
+          entry.place +
+          "\n" +
+          entry.date +
+          "\n" +
+          entry.details.join("\n"),
+      ).join("\n\n"),
+    );
+    sources.push(resumeSource);
+  }
+  if (intents.includes("certifications")) {
+    sections.push(
+      CERTIFICATIONS.map(
+        (item) => item.title + "\n" + item.issuer + " · " + item.year,
+      ).join("\n\n"),
+    );
+    sources.push(resumeSource);
+  }
+  if (intents.includes("projects")) {
+    sections.push(
+      PROJECTS.map(
+        (project) => project.title + " — " + project.description,
+      ).join("\n\n"),
+    );
+    sources.push({ label: CHAT.workSource, href: "#work" });
+  }
+  if (/\b(resume|cv|download)\b/.test(question))
     return {
-      text: PROJECTS.map((p) => `${p.title} — ${p.description}`).join("\n\n"),
-      sources: [{ label: CHAT.workSource, href: "#work" }, ...resume],
+      text: PROFILE.name + " · " + PROFILE.role,
+      sources: [resumeSource],
+      intents: ["resume"],
+      kind: "answer",
     };
-  if (/\b(resume|cv|download)\b/.test(q))
-    return { text: `${PROFILE.name} · ${PROFILE.role}`, sources: resume };
-  if (
-    /\b(about anees|about muhammad|who is (anees|muhammad anees)|introduce anees|introduction|professional summary|specialize|specializes|specialization|his role|anees role)\b/.test(q)
-  )
-    return {
-      text: `${PROFILE.name} · ${PROFILE.role}\n\n${PROFILE.resumeSummary}`,
-      sources: resume,
-    };
-  return fallback;
+
+  return sections.length
+    ? {
+        kind: "answer",
+        intents,
+        text: sections.join("\n\n"),
+        sources: sources.filter(
+          (source, index, all) =>
+            all.findIndex((item) => item.href === source.href) === index,
+        ),
+      }
+    : fallback;
 }

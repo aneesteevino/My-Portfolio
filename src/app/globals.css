@@ -213,6 +213,11 @@
   .skip-link:focus {
     transform: none;
   }
+  body.mobile-menu-open .robo-launcher {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
   @media (prefers-reduced-motion: reduce) {
     .motion-ready .rv:not(.is-in):not([data-revealed]),
     .motion-ready .rv-mask:not(.is-in):not([data-revealed]) {
