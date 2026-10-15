@@ -19,6 +19,8 @@ export const PROFILE = {
   shortLine:
     "Applied prompt and context engineering to reduce hallucination; built agent-based workflows and recommendation systems.",
   quote: "Turning business requirements into scalable AI products.",
+  careerDirection:
+    "AI engineering focused on LLM-powered applications, agentic workflows, RAG systems, automation, and scalable AI products.",
   github: "https://github.com/AneesTeevino",
   linkedin: "https://linkedin.com/in/anees-teevino",
   resume: "/resume.pdf",
@@ -215,8 +217,8 @@ export const SKILL_GROUPS: SkillGroup[] = [
     family: "AI Technologies",
     skills: [
       skill("Prompt & Context Engineering", "Pc", "prompt"),
-      skill("Agentic AI", "Ai", "agent"),
-      skill("Multi-Agent Collaboration", "Ma", "agents"),
+      skill("Agentic AI", "Ai", "agent", ["AI agents", "agentic workflows"]),
+      skill("Multi-Agent Collaboration", "Ma", "agents", ["multi-agent systems"]),
       skill("Tool Calling", "Tc", "tools"),
       skill("RAG", "Ra", "rag"),
       skill("Embeddings", "Em", "embeddings"),
@@ -228,7 +230,7 @@ export const SKILL_GROUPS: SkillGroup[] = [
   {
     family: "Automation & Backend",
     skills: [
-      skill("n8n", "Nn", "n8n"),
+      skill("n8n", "Nn", "n8n", ["automation", "workflow automation"]),
       skill("FastAPI", "Fa", "fastapi"),
       skill("Node.js", "Nd", "nodejs"),
       skill("Express.js", "Ex", "express"),
@@ -509,7 +511,7 @@ export const CHAT = {
   fallback:
     "I don’t have a verified answer to that in Anees’s portfolio. Try asking about his projects, skills, education or experience, or contact him directly.",
   privacy:
-    "Gemini phrases answers from verified portfolio facts. This site does not store your chat history.",
+    "AI providers phrase verified portfolio facts. Chat stays in this browser session.",
   suggestions: [
     "Tell me about Anees",
     "Why should we hire him?",

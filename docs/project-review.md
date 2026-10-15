@@ -1,8 +1,9 @@
 # Public repository review — 11 October 2026
 
-Reviewed the public repository inventory at https://github.com/AneesTeevino after
-the selected GitHub connector returned `USER_NOT_LOGGED_IN`. No private repository
-access is claimed. Biography and project claims still come from the supplied résumé.
+Reviewed the repository inventory available through the connected GitHub account
+and the public profile at https://github.com/AneesTeevino. Biography and project
+claims still come from the supplied résumé; repository visibility alone is not
+treated as permission to publish private implementation details.
 
 | Project | Evidence reviewed | Decision / caveat |
 | --- | --- | --- |
@@ -19,6 +20,11 @@ Coursework, basic clones, forks, empty repositories, and untested additions were
 not promoted. The six résumé entries are displayed as work descriptions with
 illustrative interfaces. They are **not** labelled as certified production-ready
 applications. Fixing unrelated repositories is outside this portfolio build.
+
+No repository name, description, or approved profile record matching a snake
+species detection project was found in the connected inventory or scoped GitHub
+search on 15 October 2026. The chatbot therefore identifies that project as
+unverified and does not expose or infer private development details.
 
 To strengthen a future launch, restore the Legal Assistant demo, repair and run
 Pakwheels' static serving and inference flow, repair FlashGenius generation, and

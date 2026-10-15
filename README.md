@@ -83,6 +83,14 @@ answers. General knowledge, news, weather, politics, and sports are declined.
 Business answers separate verified evidence from proposed scope, discovery needs,
 risks, and unavailable timeline or budget facts.
 
+The router also handles semantic variants for agentic AI and automation, career
+direction, current AI Engineer responsibilities, and documented problem/solution
+examples. Finance recommendations are framed as proposed applications of verified
+technical capabilities; the portfolio does not claim finance-sector experience.
+Responses support concise Markdown and deduplicate evidence, source links, and
+contact actions. See `docs/chat-audit.md` for the failure analysis and regression
+expectations.
+
 For local Gemini responses, copy `.env.example` to `.env.local` and set:
 
 ```sh

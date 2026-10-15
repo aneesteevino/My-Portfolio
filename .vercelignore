@@ -1,5 +1,6 @@
 .git
 .next
+.next-stale*
 node_modules
 artifacts
 test-results

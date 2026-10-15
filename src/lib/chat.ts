@@ -154,10 +154,30 @@ function businessQualification(question: string): Answer {
     /\b(customer|support|help center|knowledge|assistant|rag|chatbot)\b/.test(
       question,
     );
+  const finance =
+    /\b(finance|financial|fintech|bank|banking|investment|accounting|insurance)\b/.test(
+      question,
+    );
   const fit =
-    ecommerce && support
+    finance
+      ? "Partial fit based on transferable AI engineering evidence. The portfolio does not verify professional finance-sector experience, so domain and compliance fit require discovery."
+      : ecommerce && support
       ? "Strong technical fit for a discovery-led MVP; domain-specific production fit should be validated."
       : "Promising technical fit, with the exact scope and domain requirements still to validate.";
+  const proposedScope = finance
+    ? "• Permission-aware document Q&A over approved policies, reports, and internal knowledge.\n" +
+      "• Search across reports with citations and source links.\n" +
+      "• A knowledge assistant with controlled tools for approved workflows.\n" +
+      "• Human review, evaluation, audit logging, and escalation for sensitive answers."
+    : "• Permission-aware ingestion for help-center and order data.\n" +
+      "• Retrieval with citations and order lookup through controlled tools.\n" +
+      "• Support chat with human escalation and feedback capture.\n" +
+      "• Evaluation set, hallucination checks, logging, and basic monitoring.";
+  const discovery = finance
+    ? "• Which documents, users, permissions, retention rules, and review requirements apply?\n" +
+      "• Which workflows may be automated, and which require a qualified human decision?"
+    : "• Which support channels, order systems, user roles, languages, and escalation rules are required?\n" +
+      "• What data can be indexed, and what must remain live behind authenticated APIs?";
   return {
     kind: "business",
     intents: ["business-fit", "project", "skills", "contact"],
@@ -171,14 +191,12 @@ function businessQualification(question: string): Answer {
       "• TDC AI work: MongoDB-backed RAG, knowledge sync, prompt/context engineering, and multi-model routing.\n" +
       "• Full-stack delivery with FastAPI, Node.js, TypeScript, React, databases, APIs, and automation.\n\n" +
       "Proposed MVP — not completed portfolio work\n" +
-      "• Permission-aware ingestion for help-center and order data.\n" +
-      "• Retrieval with citations and order lookup through controlled tools.\n" +
-      "• Support chat with human escalation and feedback capture.\n" +
-      "• Evaluation set, hallucination checks, logging, and basic monitoring.\n\n" +
+      proposedScope +
+      "\n\n" +
       "Discovery questions\n" +
-      "• Which support channels, order systems, user roles, languages, and escalation rules are required?\n" +
-      "• What data can be indexed, and what must remain live behind authenticated APIs?\n\n" +
-      "Key risks\nData quality, permissions, PII, hallucinations, evaluation coverage, human escalation, and integration complexity.\n\n" +
+      discovery +
+      "\n\n" +
+      "Key risks\nData quality, permissions, PII and sensitive data, hallucinations, evaluation coverage, compliance review, human escalation, and integration complexity.\n\n" +
       "Timeline and budget\nThe portfolio does not verify an exact timeline, rate, or budget. Those require discovery and access to the current stack.\n\n" +
       "Contact Anees with the goal, users, data sources, integrations, deadline, budget range, and success criteria.",
     sources: contactSources,
@@ -192,6 +210,85 @@ function businessQualification(question: string): Answer {
         sources: [resumeSource],
       },
     ],
+  };
+}
+
+function agentAutomationAnswer(): Answer {
+  return {
+    kind: "answer",
+    intents: ["skills", "experience", "agentic-ai", "automation"],
+    text:
+      "Yes. Anees’s verified work covers AI agents and automation.\n\n" +
+      "• At The Deft Crew, he built agent-based workflows, recommendation systems, multi-model routing, RAG pipelines, and a knowledge-sync pipeline.\n" +
+      "• His documented stack includes Agentic AI, multi-agent collaboration, tool calling, LLM orchestration, n8n, webhooks, and REST APIs.\n" +
+      "• His AI Career Assistant orchestrates OpenAI, Gemini, Claude, and Groq through a unified API.\n\n" +
+      "The portfolio verifies those capabilities; it does not claim outcomes or automation deployments beyond the documented work.",
+    sources: [resumeSource, { label: CHAT.skillsSource, href: "#skills" }],
+    evidence: [
+      {
+        claim:
+          "Current AI Engineer responsibilities include agent-based workflows, multi-model services, RAG, knowledge sync, and recommendation systems.",
+        sources: [resumeSource],
+      },
+    ],
+  };
+}
+
+function careerDirectionAnswer(): Answer {
+  return {
+    kind: "answer",
+    intents: ["profile", "career-direction", "education"],
+    text:
+      "Anees’s exact personal career goal is not stated as a separate verified claim. His documented direction is AI engineering focused on LLM-powered applications, agentic workflows, RAG systems, automation, and scalable AI products.\n\n" +
+      "He currently works as an AI Engineer and is completing a B.S. in Artificial Intelligence through 2027. For a specific long-term goal, contact him directly.",
+    sources: [resumeSource, ...contactSources],
+    evidence: [
+      { claim: PROFILE.careerDirection, sources: [resumeSource] },
+    ],
+  };
+}
+
+function responsibilitiesAnswer(): Answer {
+  const current = EXPERIENCE[0];
+  return {
+    kind: "answer",
+    intents: ["experience", "responsibilities"],
+    text:
+      "As an AI Engineer at The Deft Crew, Anees has handled:\n" +
+      current.details.map((detail) => "• " + detail).join("\n"),
+    sources: [resumeSource],
+    evidence: [
+      {
+        claim: "AI Engineer responsibilities at The Deft Crew.",
+        sources: [resumeSource],
+      },
+    ],
+  };
+}
+
+function problemExampleAnswer(): Answer {
+  const project = PROJECTS.find((item) => item.id === "pakwheels")!;
+  return {
+    kind: "answer",
+    intents: ["project", "problem-solution"],
+    topic: project.id,
+    text:
+      "One documented example is PakWheels AI.\n\n" +
+      "Problem\nUsers needed natural-language search across a large vehicle inventory.\n\n" +
+      "Approach\nAnees built semantic search with FAISS and Sentence Transformers, exposed through FastAPI, with Groq LLaMA 3 in the stack.\n\n" +
+      "Verified outcome\nThe project searches 77,000+ listings and documents sub-second natural-language queries.",
+    sources: projectSource(project),
+    evidence: [projectEvidence(project)],
+  };
+}
+
+function snakeProjectAnswer(): Answer {
+  return {
+    kind: "unknown",
+    intents: ["project", "unverified-project"],
+    text:
+      "A snake species detection project is not part of Anees’s verified public portfolio, résumé, or approved GitHub project record. I can’t describe its implementation or present it as completed work without an authoritative public record.\n\nYou can ask about PakWheels AI, the Pakistani Legal Assistant, Pakistan Travel RAG, AI Resume Builder, AI Career Assistant, or TDC AI Chat Service.",
+    sources: [resumeSource, { label: "GitHub profile", href: PROFILE.github }],
   };
 }
 
@@ -329,6 +426,40 @@ export function answerQuestion(input: string, previousTopic?: string): Answer {
       sources: [],
     };
 
+  if (/\b(snake|species detection|snake detection)\b/.test(question))
+    return snakeProjectAnswer();
+
+  if (
+    /\b(career goal|career direction|career objective|professional goal|future goal|career aspiration|where.*career|where.*headed)\b/.test(
+      question,
+    )
+  )
+    return careerDirectionAnswer();
+
+  if (
+    /\b(responsibilit|responsibilities|duties|handled|what does he do|what has he done).*\b(ai engineer|engineer|work|role)?\b/.test(
+      question,
+    ) || /\b(ai engineer).*(responsibilit|duties|handled)\b/.test(question)
+  )
+    return responsibilitiesAnswer();
+
+  if (
+    /\b(example|tell me).*(problem|challenge).*(solved|handled|addressed)|\b(problem|challenge).*(he|anees).*(solved|handled|addressed)|\bsolution.*example\b/.test(
+      question,
+    )
+  )
+    return problemExampleAnswer();
+
+  if (
+    /\b(ai agents?|agentic(?: ai| workflows?)?|agent based|multi agents?|automation|automated|automate|workflow automation|n8n|llm orchestration)\b/.test(
+      question,
+    ) &&
+    !/\b(business|company|startup|client|industry|finance|financial|bank|banking|ecommerce|e commerce|retail|how (can|could|would) (he|anees))\b/.test(
+      question,
+    )
+  )
+    return agentAutomationAnswer();
+
   if (
     /\b(compare|comparison|versus|vs|best project|standout project|most impressive project)\b|strongest.*project/.test(
       question,
@@ -412,7 +543,7 @@ export function answerQuestion(input: string, previousTopic?: string): Answer {
 
   const intents: string[] = [];
   if (
-    /\b(skill|skills|stack|technologies|languages|tools|frameworks|python|typescript|javascript|rag|fastapi|react|node)\b/.test(
+    /\b(skill|skills|stack|technologies|languages|tools|frameworks|python|typescript|javascript|rag|fastapi|react|node|agents?|agentic|automation|n8n|orchestration)\b/.test(
       question,
     )
   )
