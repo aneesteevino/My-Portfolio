@@ -139,6 +139,14 @@ test("mobile skill disciplines are discoverable and activate by touch", async ({
       await button.tap();
       await expect(button).toHaveAttribute("aria-pressed", "true");
       await expect(page.locator(".skill-chip")).toHaveCount(group.skills.length);
+      await expect(page.locator(".capability-deck")).toBeVisible();
+      await expect(page.locator(".capability-deck h3")).toHaveText(group.family);
+      await expect(page.locator(".capability-deck")).toHaveClass(/is-in/);
+      expect(
+        await page
+          .locator(".capability-deck")
+          .evaluate((node) => Number.parseFloat(getComputedStyle(node).opacity)),
+      ).toBe(1);
     }
     await context.close();
   }

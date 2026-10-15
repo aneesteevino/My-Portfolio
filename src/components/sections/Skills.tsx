@@ -54,7 +54,7 @@ export default function Skills() {
           ))}
         </div>
 
-        <div className="capability-deck card rv" key={group.family}>
+        <div className="capability-deck card rv">
           <div className="deck-intro">
             <span className="eyebrow">
               {String(familyIndex + 1).padStart(2, "0")} / {String(SKILL_GROUPS.length).padStart(2, "0")}
