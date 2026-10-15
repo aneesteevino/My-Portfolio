@@ -1,5 +1,10 @@
 import { answerQuestion } from "../src/lib/chat";
-import { NAV, PROJECTS, SKILL_GROUPS } from "../src/lib/data";
+import {
+  CERTIFICATIONS,
+  NAV,
+  PROJECTS,
+  SKILL_GROUPS,
+} from "../src/lib/data";
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { mkdir } from "node:fs/promises";
@@ -71,6 +76,31 @@ test("production-style résumé response is a real PDF", async ({ request }) => 
   expect(response.headers()["content-type"]).toContain("application/pdf");
   const body = await response.body();
   expect(body.subarray(0, 5).toString("ascii")).toBe("%PDF-");
+});
+
+test("verified certificate evidence is published and linked", async ({
+  page,
+  request,
+}) => {
+  const linked = CERTIFICATIONS.filter((item) => item.url);
+  expect(linked).toHaveLength(4);
+  for (const item of linked) {
+    const response = await request.get(item.url!);
+    expect(response.status()).toBe(200);
+    const body = await response.body();
+    if (item.url!.endsWith(".pdf")) {
+      expect(response.headers()["content-type"]).toContain("application/pdf");
+      expect(body.subarray(0, 5).toString("ascii")).toBe("%PDF-");
+    } else {
+      expect(response.headers()["content-type"]).toContain("image/png");
+      expect(body.subarray(1, 4).toString("ascii")).toBe("PNG");
+    }
+  }
+  await page.goto("/");
+  await page.locator("#certifications").scrollIntoViewIfNeeded();
+  await expect(page.locator(".cert-row")).toHaveCount(CERTIFICATIONS.length);
+  for (const item of linked)
+    await expect(page.locator(`a[href="${item.url}"]`)).toBeVisible();
 });
 
 test("all skill families expose representative verified skills", async ({
@@ -191,7 +221,7 @@ test("chat input, persistence, clear, counter, and local-fallback notice work", 
   await textarea.press("Enter");
   await expect(page.getByRole("log")).toContainText("Verified response");
   await expect(page.getByRole("log")).toContainText(
-    "Gemini was unavailable",
+    "AI providers were unavailable",
   );
   await page.getByRole("button", { name: "Close chat" }).click();
   await page.getByRole("button", { name: launcherName }).click();
@@ -321,6 +351,19 @@ test("chat router handles professional scenarios and multi-turn context", () => 
   );
   expect(compound.text).toContain("The Deft Crew");
   expect(compound.text).toContain("AI & LLM Frameworks");
+
+  const credentials = answerQuestion("What certificates has Anees earned?");
+  expect(credentials.text).toContain("AI Agent Developer Intern");
+  expect(credentials.text).toContain("AI Got Talent");
+  expect(credentials.text).toContain("Game Development in Unity");
+  expect(credentials.text).toContain("6-Week Summer Internship");
+  expect(credentials.sources).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        href: "/certificates/tdc-ai-agent-internship-2026.png",
+      }),
+    ]),
+  );
 });
 
 test("mobile menu and chat stack correctly at 360 and 390", async ({ page }) => {

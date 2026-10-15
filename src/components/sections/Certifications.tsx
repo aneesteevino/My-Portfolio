@@ -60,7 +60,8 @@ function CertContent({
       <div>
         <h3>{cert.title}</h3>
         <p>
-          {cert.issuer} · {cert.year}
+          {cert.issuer}
+          {cert.year ? ` · ${cert.year}` : ""}
         </p>
       </div>
       {cert.url && (

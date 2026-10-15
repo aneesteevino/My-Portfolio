@@ -326,6 +326,30 @@ export const CERTIFICATIONS = [
     year: "2025",
     url: null,
   },
+  {
+    title: "AI Agent Developer Intern",
+    issuer: "The Deft Crew (TDC)",
+    year: "10 Jun — 9 Aug 2026",
+    url: "/certificates/tdc-ai-agent-internship-2026.png",
+  },
+  {
+    title: "AI Got Talent · Certificate of Participation",
+    issuer: "ACM Developers Day ’26 · FAST NUCES Karachi",
+    year: "30 Apr 2026",
+    url: "/certificates/ai-got-talent-2026.pdf",
+  },
+  {
+    title: "Game Development in Unity",
+    issuer: "Microsoft Learn Student Ambassadors",
+    year: "",
+    url: "/certificates/game-development-unity.pdf",
+  },
+  {
+    title: "6-Week Summer Internship · Web Portal Development",
+    issuer: "MUET FM 92.6",
+    year: "15 May — 30 Jun 2025",
+    url: "/certificates/muet-fm-internship-2025.pdf",
+  },
 ];
 export type Achievement = {
   label: string;
@@ -426,10 +450,10 @@ export const COPY = {
     },
   },
   certifications: {
-    tag: "Certifications",
+    tag: "Certificates & credentials",
     heading: "Always",
     accent: "learning.",
-    count: "certification",
+    count: "verified records",
   },
   experience: {
     tag: "The path so far",
@@ -479,7 +503,7 @@ export const CHAT = {
   error:
     "I couldn’t reach the portfolio assistant. Your question was not answered. Please retry.",
   localFallbackNotice:
-    "Gemini was unavailable, so this is the verified local portfolio answer.",
+    "The AI providers were unavailable, so this is the verified local portfolio answer.",
   close: "Close chat",
   clear: "Clear chat",
   fallback:

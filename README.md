@@ -29,17 +29,22 @@ pins the installed dependency versions. Use `npm ci` in CI.
 ## Content and sources
 
 All biography, education, skills, experience, project descriptions, numbers, and
-certification text live in `src/lib/data.ts`. The résumé summary is verbatim,
-with PDF line wraps normalized to spaces. `COPY` contains the UI wording requested
-in the design brief. Components do not invent personal claims.
+credential text live in `src/lib/data.ts`. The résumé remains the source for the
+core portfolio; the four supplied credential files are additional primary sources
+for their corresponding certificate rows. The résumé summary is verbatim, with PDF
+line wraps normalized to spaces. `COPY` contains UI wording. Components do not
+invent personal claims.
 
 The original résumé is copied byte-for-byte to `public/resume.pdf`. Its embedded
 links contain GitHub, LinkedIn, and email only. Project repository links were
 verified against the public account under the separate authorization to review
 GitHub. See `docs/project-review.md` for evidence and the limits of that review.
 
-No personal location, ID number, department, certification URL, standalone
-achievement, coding rank, testimonial, or unsupported social profile is included.
+No personal location, ID number, department, standalone achievement, coding rank,
+testimonial, or unsupported social profile is included. Supplied certificate
+files are published under `public/certificates/` and linked only to the claims
+visible in those documents.
+
 The ID card shows the graduation year as **Graduation**, rather than claiming an
 official document expiry. Decorative barcode bars are not an invented ID number.
 Illustrative project interfaces are explicitly labelled and contain no fabricated
@@ -53,7 +58,7 @@ customer data, analytics, scores, or screenshots.
 | 01 | About | Accessible flipping ID card, damped pointer-driven pendulum, quick facts |
 | 02 | Skills | Compact animated capability deck with family tabs, logos, and project evidence |
 | 03 | Work | Six résumé projects, expanding horizontal / mobile vertical accordion, CSS illustrations |
-| 04 | Certifications | Google / Coursera certification, ink-fill hover and keyboard focus |
+| 04 | Certificates | Five verified learning and internship records, ink-fill hover and keyboard focus |
 | 05 | Experience | Chronological education and employment path, scroll-drawn spine |
 | 06 | Contact | Email copy with live status, contact links, letter animation, footer |
 | Omitted | Achievements | Résumé contains no standalone achievements. Array remains empty and nav link is absent. |
@@ -66,9 +71,10 @@ future **verified** data. It is not rendered and no achievement has been invente
 A small floating robot-cat button opens an accessible chat. A deterministic intent
 and context layer retrieves every relevant fact from `src/lib/data.ts`, including
 compound requests and project follow-ups. Gemini 3.5 Flash Lite may phrase that
-structured context more naturally; it never receives permission to add facts.
-When Gemini fails, the interface identifies the response as a verified local
-fallback rather than presenting it as provider output. The API applies a basic
+structured context more naturally; Groq `openai/gpt-oss-20b` is the secondary
+provider. Neither receives permission to add facts. If both providers fail, the
+interface identifies the response as a verified local fallback rather than
+presenting it as provider output. The API applies a basic
 per-IP rate limit and keeps the provider key on the server. Conversation state is
 kept in session storage so closing and reopening the dialog preserves the current
 page-session chat; **Clear Chat** explicitly removes it. Portfolio, comparison,
@@ -81,10 +87,11 @@ For local Gemini responses, copy `.env.example` to `.env.local` and set:
 
 ```sh
 GOOGLE_GENERATIVE_AI_API_KEY=your_server_only_key
+GROQ_API_KEY=your_optional_secondary_key
 ```
 
-Never prefix the key with `NEXT_PUBLIC_`. Without it, the same interface uses the
-local verified answers. The native dialog supports Escape, keyboard focus
+Never prefix either key with `NEXT_PUBLIC_`. Without them, the same interface uses
+the local verified answers. The native dialog supports Escape, keyboard focus
 containment, focus restoration, an auto-growing composer, Enter/Shift+Enter,
 Stop and Retry controls, guarded auto-scroll, and a responsive bottom-sheet layout.
 
@@ -193,7 +200,8 @@ are recorded in `docs/verification.md`; do not interpret an unrun audit as passe
 Import this repository into Vercel as a Next.js project, with the workspace root
 as the project root, and use the default `npm run build` command. Add
 `GOOGLE_GENERATIVE_AI_API_KEY` as a sensitive, server-only environment variable
-to enable Gemini phrasing. The local fallback needs no secret. Set
+to enable Gemini phrasing. `GROQ_API_KEY` enables the secondary provider. The local
+fallback needs no secret. Set
 `NEXT_PUBLIC_SITE_URL` if using a custom domain; otherwise Vercel's production
 domain supplies metadataBase automatically.
 GitHub push and Vercel deployment need the corresponding authenticated accounts.

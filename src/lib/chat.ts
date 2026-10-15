@@ -429,7 +429,7 @@ export function answerQuestion(input: string, previousTopic?: string): Answer {
     )
   )
     intents.push("education");
-  if (/\b(certification|certificate|course)\b/.test(question))
+  if (/\b(certifications?|certificates?|credentials?|courses?)\b/.test(question))
     intents.push("certifications");
   if (/\b(project|projects|built|build|portfolio work)\b/.test(question))
     intents.push("projects");
@@ -486,10 +486,19 @@ export function answerQuestion(input: string, previousTopic?: string): Answer {
   if (intents.includes("certifications")) {
     sections.push(
       CERTIFICATIONS.map(
-        (item) => item.title + "\n" + item.issuer + " · " + item.year,
+        (item) =>
+          item.title +
+          "\n" +
+          item.issuer +
+          (item.year ? " · " + item.year : ""),
       ).join("\n\n"),
     );
-    sources.push(resumeSource);
+    sources.push(
+      resumeSource,
+      ...CERTIFICATIONS.flatMap((item) =>
+        item.url ? [{ label: item.title, href: item.url }] : [],
+      ),
+    );
   }
   if (intents.includes("projects")) {
     sections.push(
