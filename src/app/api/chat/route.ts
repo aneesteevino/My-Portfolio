@@ -42,7 +42,7 @@ const gemini: Provider = {
       system: SYSTEM_PROMPT,
       messages,
       maxOutputTokens: 900,
-      temperature: 0.4,
+      temperature: 0.3,
       maxRetries: 0,
       abortSignal: signal,
     });
@@ -71,7 +71,7 @@ const groq: Provider = {
         messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
         max_completion_tokens: 1400,
         reasoning_effort: "low",
-        temperature: 0.4,
+        temperature: 0.3,
         stream: true,
       }),
       signal,
