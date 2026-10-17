@@ -50,27 +50,36 @@ export type Project = {
   features: string[];
   tech: string[];
   github?: string;
-  illustration: "resume" | "career" | "chat" | "travel" | "legal" | "cars";
+  demo?: string;
+  illustration: "resume" | "career" | "chat" | "travel" | "legal" | "plan";
 };
 export const PROJECTS: Project[] = [
   {
-    id: "pakwheels",
+    id: "plot2plan",
     index: "01",
-    title: "PakWheels AI",
-    kicker: "Semantic search",
-    year: "2025",
+    title: "Plot2Plan AI",
+    kicker: "AI-assisted architectural planning",
+    year: "2026",
     description:
-      "Semantic search over 77,000+ car listings with FAISS and Groq LLaMA 3 for sub-second natural language queries.",
+      "Turns plot measurements and a building brief into dimensioned, validated floor-plan concepts and a PDF planning report for residential plots in Pakistan.",
     features: [
-      "77,000+ car listings",
-      "Natural language queries",
-      "FAISS semantic search",
-      "Groq LLaMA 3",
+      "Dimensioned multi-floor plans",
+      "Layout validation checks",
+      "PDF planning report",
+      "AI-assisted plot reading",
     ],
-    tech: ["FastAPI", "FAISS", "Sentence Transformers", "Groq", "LLaMA 3"],
-    github:
-      "https://github.com/aneesteevino/PakWheels-AI-RAG-Car-Intelligence-System",
-    illustration: "cars",
+    tech: [
+      "Next.js",
+      "TypeScript",
+      "React",
+      "MongoDB",
+      "Tailwind CSS",
+      "Zod",
+      "Hugging Face",
+    ],
+    github: "https://github.com/aneesteevino/plot2plan-ai",
+    demo: "https://plot2plan-ai.vercel.app/",
+    illustration: "plan",
   },
   {
     id: "legal",
@@ -427,6 +436,7 @@ export const COPY = {
     intro:
       "LLM-powered applications, RAG systems, and multi-model AI services.",
     github: "View on GitHub ↗",
+    demo: "Live demo ↗",
     illustration: "Illustrative UI",
     labels: {
       resume: [
@@ -448,7 +458,7 @@ export const COPY = {
         "Source attribution",
         "Confidence scoring",
       ],
-      cars: ["PakWheels AI", "Semantic search", "77,000+ car listings"],
+      plan: ["Plot2Plan AI", "35 × 70 ft plot", "Ground floor concept"],
     },
   },
   certifications: {

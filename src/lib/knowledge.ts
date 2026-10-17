@@ -13,10 +13,15 @@ import {
  * READMEs, so the model never needs to rely on its own knowledge of Anees.
  */
 const REPO_NOTES: Record<string, string[]> = {
-  pakwheels: [
-    "README: RAG system over 77,000+ real PakWheels used-car listings.",
-    "README pipeline: intent classification → parameter extraction (city, make, model, fuel, transmission, price, year) → pandas structured filtering → statistical aggregation (mean/min/max/count) → FAISS semantic retrieval with Sentence-Transformers embeddings → context preparation → Groq LLaMA 3 70B generation → structured JSON response.",
-    "README: FastAPI REST backend plus a responsive HTML/CSS/JS frontend with vehicle detail cards.",
+  plot2plan: [
+    "README: AI-assisted PRELIMINARY architectural planning for residential plots, optimised for Pakistan; explicitly not for construction or permit submission without review by qualified professionals.",
+    "README: five-step project wizard (project details, plot image, dimensions, requirements, constraints) supporting feet/metres/yards and sq ft/m²/sq yd/marla/kanal with configurable marla size.",
+    "README: deterministic geometry and zoned-band layout engine (not an image generator) produces dimensioned floor plans for 1–4 floors on rectangular plots; upper floors reuse the ground-floor grid so stairs, walls and wet areas stack.",
+    "README: validation for overlaps, minimum sizes, natural light, door reachability (BFS), stair alignment, coverage and height limits; infeasible briefs are explained rather than drawn.",
+    "README: interactive SVG plan viewer with room editing and versioning; exports a vector PDF planning report (jsPDF), SVG, PNG and JSON; every report row is tagged as user-provided, calculated, suggestion, assumption or needs professional confirmation.",
+    "README: optional Hugging Face Inference Providers (Qwen vision/text model) reads visible measurements from plot images and turns free text into form suggestions; AI output is schema-validated with Zod and confirmed by the user, and the app works without AI.",
+    "README: Next.js App Router + TypeScript, MongoDB with owner-scoped queries via an anonymous httpOnly cookie, browser-storage fallback, best-effort rate limiting, Vitest tests. Prototype without real sign-in.",
+    "Live demo: https://plot2plan-ai.vercel.app/",
   ],
   legal: [
     "README: React + TypeScript frontend, FastAPI backend, Google Gemini (1.5 Flash) generation.",
@@ -81,6 +86,7 @@ export const PORTFOLIO_KNOWLEDGE = [
     `Summary: ${project.description}`,
     `Stack: ${project.tech.join(", ")}`,
     `Link: ${project.github ?? "no public repository"}`,
+    ...(project.demo ? [`Live demo: ${project.demo}`] : []),
     list(REPO_NOTES[project.id] ?? []),
   ]),
   "",

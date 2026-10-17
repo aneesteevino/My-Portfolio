@@ -190,6 +190,22 @@ test("project accordion uses click, Enter, and Space deterministically", async (
   await expect(spines.nth(2)).toHaveAttribute("aria-expanded", "false");
 });
 
+test("work section features Plot2Plan AI with its live demo", async ({ page }) => {
+  await page.goto("/");
+  const work = page.locator("#work");
+  await expect(work).not.toContainText("PakWheels");
+  await expect(page.locator(".project-spine").first()).toContainText("Plot2Plan AI");
+  const panel = page.locator("#project-plot2plan");
+  await expect(panel.getByRole("link", { name: "Live demo ↗" })).toHaveAttribute(
+    "href",
+    "https://plot2plan-ai.vercel.app/",
+  );
+  await expect(panel.getByRole("link", { name: "View on GitHub ↗" })).toHaveAttribute(
+    "href",
+    "https://github.com/aneesteevino/plot2plan-ai",
+  );
+});
+
 test("project accordion supports touch activation", async ({ browser }) => {
   const context = await browser.newContext({
     hasTouch: true,
@@ -311,7 +327,7 @@ test("chat Stop, provider errors and Retry are explicit", async ({ page }) => {
 
 test("chat renders Markdown safely and the log scrolls with the mouse wheel", async ({ page }) => {
   const long =
-    "### Overview\n**Anees** builds RAG systems.\n| Project | Retrieval |\n|---|---|\n| PakWheels AI | FAISS |\n- [GitHub](https://github.com/AneesTeevino)\n- [bad](javascript:alert(1))\n- <img src=x onerror=alert(1)>\n```\nconst x = 1;\n```\n" +
+    "### Overview\n**Anees** builds RAG systems.\n| Project | Retrieval |\n|---|---|\n| Plot2Plan AI | Zoning engine |\n- [GitHub](https://github.com/AneesTeevino)\n- [bad](javascript:alert(1))\n- <img src=x onerror=alert(1)>\n```\nconst x = 1;\n```\n" +
     Array.from({ length: 14 }, (_, index) => `Paragraph ${index} with a long explanation of retrieval.`).join("\n");
   await page.route("**/api/chat", async (route) => {
     await route.fulfill({ status: 200, body: ndjson(long, 40) });
@@ -331,7 +347,7 @@ test("chat renders Markdown safely and the log scrolls with the mouse wheel", as
   await expect(log.getByRole("link", { name: "GitHub" }).first()).toHaveAttribute("rel", /noopener/);
   await expect(log.locator("pre code").first()).toHaveText("const x = 1;");
   await expect(log.locator(".answer-table th").first()).toHaveText("Project");
-  await expect(log.locator(".answer-table td").first()).toHaveText("PakWheels AI");
+  await expect(log.locator(".answer-table td").first()).toHaveText("Plot2Plan AI");
   await expect(log).not.toContainText("|---");
   // Pinned to the latest message after streaming.
   expect(await log.evaluate((node) => node.scrollHeight - node.scrollTop - node.clientHeight)).toBeLessThan(48);
