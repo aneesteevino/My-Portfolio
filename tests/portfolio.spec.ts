@@ -311,7 +311,7 @@ test("chat Stop, provider errors and Retry are explicit", async ({ page }) => {
 
 test("chat renders Markdown safely and the log scrolls with the mouse wheel", async ({ page }) => {
   const long =
-    "### Overview\n**Anees** builds RAG systems.\n- [GitHub](https://github.com/AneesTeevino)\n- [bad](javascript:alert(1))\n- <img src=x onerror=alert(1)>\n```\nconst x = 1;\n```\n" +
+    "### Overview\n**Anees** builds RAG systems.\n| Project | Retrieval |\n|---|---|\n| PakWheels AI | FAISS |\n- [GitHub](https://github.com/AneesTeevino)\n- [bad](javascript:alert(1))\n- <img src=x onerror=alert(1)>\n```\nconst x = 1;\n```\n" +
     Array.from({ length: 14 }, (_, index) => `Paragraph ${index} with a long explanation of retrieval.`).join("\n");
   await page.route("**/api/chat", async (route) => {
     await route.fulfill({ status: 200, body: ndjson(long, 40) });
@@ -330,6 +330,9 @@ test("chat renders Markdown safely and the log scrolls with the mouse wheel", as
   await expect(log.getByRole("link", { name: "bad" })).toHaveCount(0);
   await expect(log.getByRole("link", { name: "GitHub" }).first()).toHaveAttribute("rel", /noopener/);
   await expect(log.locator("pre code").first()).toHaveText("const x = 1;");
+  await expect(log.locator(".answer-table th").first()).toHaveText("Project");
+  await expect(log.locator(".answer-table td").first()).toHaveText("PakWheels AI");
+  await expect(log).not.toContainText("|---");
   // Pinned to the latest message after streaming.
   expect(await log.evaluate((node) => node.scrollHeight - node.scrollTop - node.clientHeight)).toBeLessThan(48);
   // Real mouse-wheel scrolling works inside the panel (Lenis must not swallow it).

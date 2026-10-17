@@ -101,6 +101,31 @@ function Markdown({ text }: { text: string }) {
       );
       continue;
     }
+    if (line.startsWith("|")) {
+      const rows: string[][] = [];
+      while (index < lines.length && lines[index].trim().startsWith("|")) {
+        const cells = lines[index].trim().replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim());
+        if (!cells.every((cell) => /^:?-{2,}:?$/.test(cell))) rows.push(cells);
+        index += 1;
+      }
+      const [head, ...body] = rows;
+      if (!head) continue;
+      blocks.push(
+        <div className="answer-table" key={`table-${index}`} tabIndex={0} role="region" aria-label="Table">
+          <table>
+            <thead>
+              <tr>{head.map((cell, cellIndex) => <th key={cellIndex}>{inlineMarkdown(cell)}</th>)}</tr>
+            </thead>
+            <tbody>
+              {body.map((row, rowIndex) => (
+                <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex}>{inlineMarkdown(cell)}</td>)}</tr>
+              ))}
+            </tbody>
+          </table>
+        </div>,
+      );
+      continue;
+    }
     const listMatch = (pattern: RegExp) => {
       const items: string[] = [];
       while (index < lines.length && pattern.test(lines[index].trim())) {
@@ -505,6 +530,8 @@ export default function ChatPanel({ onClose }: { onClose: () => void }) {
 .answer-heading{font-weight:650;margin-top:4px}.answer a{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
 .answer code{font-family:var(--font-mono);font-size:.88em;background:#0d0d0d0d;padding:1px 5px;border-radius:5px}
 .answer pre{margin:0;padding:10px 12px;background:#0d0d0d;color:#f4f2ee;border-radius:10px;overflow-x:auto;font-size:12.5px;line-height:1.5}.answer pre code{background:none;padding:0;color:inherit}
+.answer-table{overflow-x:auto;border:1px solid var(--line);border-radius:10px}.answer-table table{border-collapse:collapse;font-size:13px;line-height:1.45;min-width:100%}
+.answer-table th,.answer-table td{padding:7px 10px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);min-width:120px}.answer-table th{background:#0d0d0d08;font-weight:650}.answer-table tr:last-child td{border-bottom:0}
 .streaming>:last-child:after{content:"";display:inline-block;width:6px;height:1em;margin-left:3px;vertical-align:-2px;background:currentColor;opacity:.6;animation:cursor-blink .8s steps(1) infinite}
 .typing{display:flex;align-items:center;gap:5px;height:24px}.typing i{width:7px;height:7px;border-radius:50%;background:#8a8780;animation:typing-dot 1s ease-in-out infinite}.typing i:nth-child(2){animation-delay:.14s}.typing i:nth-child(3){animation-delay:.28s}
 .chat-meta{margin-top:6px;font-size:12px;color:var(--ink-2)}
