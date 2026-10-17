@@ -493,35 +493,28 @@ export const COPY = {
 
 export const CHAT = {
   title: "Ask Robo Cat",
-  subtitle: "About Anees · résumé-grounded answers",
+  subtitle: "AI assistant · answers from Anees’s verified portfolio",
   intro:
-    "Hi! I’m Robo Cat, Anees’s portfolio guide. Ask me about his projects, skills, experience, business fit, or verified contact details.",
-  placeholder: "Ask about projects, skills or experience…",
+    "Hi! I’m Robo Cat, an AI assistant for Anees’s portfolio. Ask me anything about his AI engineering work, projects, skills, or how he could help your team.",
+  placeholder: "Ask about Anees’s work…",
   inputLabel: "Your question about Anees",
-  send: "Send",
-  stop: "Stop",
+  send: "Send message",
+  stop: "Stop generating",
   retry: "Retry",
-  stopped: "Generation stopped. You can retry this question when you’re ready.",
-  error:
-    "I couldn’t reach the portfolio assistant. Your question was not answered. Please retry.",
-  localFallbackNotice:
-    "The AI providers were unavailable, so this is the verified local portfolio answer.",
+  stopped: "Generation stopped.",
+  error: "I couldn’t reach the assistant. Check your connection and retry.",
   close: "Close chat",
-  clear: "Clear chat",
-  fallback:
-    "I don’t have a verified answer to that in Anees’s portfolio. Try asking about his projects, skills, education or experience, or contact him directly.",
+  clear: "New chat",
+  latest: "Jump to latest message",
+  thinking: "Robo Cat is thinking",
   privacy:
-    "AI providers phrase verified portfolio facts. Chat stays in this browser session.",
+    "AI-generated from Anees’s portfolio and may contain mistakes. Messages are sent to an AI provider and not stored by this site.",
   suggestions: [
-    "Tell me about Anees",
-    "Why should we hire him?",
-    "How can he help our business?",
-    "How can I contact him?",
+    "What AI engineering experience does he have?",
+    "Explain his RAG projects",
+    "Can he build a chatbot for my company?",
+    "Is he a fit for a junior AI engineer role?",
   ],
-  source: "Source",
-  resumeSource: "Résumé",
-  workSource: "Portfolio work",
-  skillsSource: "Portfolio skills",
-  contactSource: "Contact",
-  limit: "Please keep your question under 500 characters.",
+  maxChars: 800,
+  limit: "Please keep your message under 800 characters.",
 } as const;

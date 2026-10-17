@@ -66,48 +66,37 @@ customer data, analytics, scores, or screenshots.
 An unused `Achievements.tsx` provides the sticky gallery/count-up behavior for
 future **verified** data. It is not rendered and no achievement has been invented.
 
-## Robo Cat chat — 15 October 2026
+## Robo Cat chat — 17 October 2026
 
-A small floating robot-cat button opens an accessible chat. A deterministic intent
-and context layer retrieves every relevant fact from `src/lib/data.ts`, including
-compound requests and project follow-ups. Gemini 3.5 Flash Lite may phrase that
-structured context more naturally; Groq `openai/gpt-oss-20b` is the secondary
-provider. Neither receives permission to add facts. If both providers fail, the
-interface identifies the response as a verified local fallback rather than
-presenting it as provider output. The API applies a basic
-per-IP rate limit and keeps the provider key on the server. Conversation state is
-kept in session storage so closing and reopening the dialog preserves the current
-page-session chat; **Clear Chat** explicitly removes it. Portfolio, comparison,
-hiring, project-fit, and business qualification questions receive evidence-backed
-answers. General knowledge, news, weather, politics, and sports are declined.
-Business answers separate verified evidence from proposed scope, discovery needs,
-risks, and unavailable timeline or budget facts.
+A floating robot-cat button opens an accessible, AI-powered portfolio assistant.
+Every visitor question goes to a language model; there is no keyword router or
+canned answer list (only the greeting and suggestion chips are fixed copy).
 
-The router also handles semantic variants for agentic AI and automation, career
-direction, current AI Engineer responsibilities, and documented problem/solution
-examples. Finance recommendations are framed as proposed applications of verified
-technical capabilities; the portfolio does not claim finance-sector experience.
-Responses support concise Markdown and deduplicate evidence, source links, and
-contact actions. See `docs/chat-audit.md` for the failure analysis and regression
-expectations.
+- **Grounding:** `src/lib/knowledge.ts` builds a compact, verified knowledge
+  document from `src/lib/data.ts` (résumé facts) plus facts stated in the public
+  project READMEs, and wraps it in a system prompt that forbids invented claims,
+  separates verified facts from suggestions, and speaks about Anees in the
+  third person. Update `data.ts` and the assistant updates with it.
+- **Providers:** Gemini (`gemini-3.5-flash-lite`, Google AI Studio free tier) is
+  primary; Groq (`openai/gpt-oss-120b`, free tier) is used only if Gemini fails
+  before the first token. If both fail, the UI shows an honest error with Retry —
+  never a substituted answer.
+- **API (`/api/chat`):** validates `{ messages }`, sends the last 12 turns,
+  caps user messages at 800 characters, streams NDJSON, applies first-token and
+  total timeouts, maps provider 429s to a friendly message, rejects cross-origin
+  posts, and applies a best-effort per-IP rate limit. Nothing is stored server-side.
+- **UI:** streaming answers, Stop, Retry, New chat, safe Markdown rendering
+  (React nodes only, http/mailto/tel links only), a scroll container that only
+  follows new text while you're at the bottom, a jump-to-latest button, a 16px
+  input (prevents iOS focus-zoom) and a keyboard-aware mobile sheet. The dialog
+  carries `data-lenis-prevent` so Lenis smooth scrolling can't swallow wheel events.
 
-For local Gemini responses, copy `.env.example` to `.env.local` and set:
+For local AI responses, copy `.env.example` to `.env.local` and set:
 
 ```sh
 GOOGLE_GENERATIVE_AI_API_KEY=your_server_only_key
-GROQ_API_KEY=your_optional_secondary_key
+GROQ_API_KEY=your_optional_fallback_key
 ```
-
-Never prefix either key with `NEXT_PUBLIC_`. Without them, the same interface uses
-the local verified answers. The native dialog supports Escape, keyboard focus
-containment, focus restoration, an auto-growing composer, Enter/Shift+Enter,
-Stop and Retry controls, guarded auto-scroll, and a responsive bottom-sheet layout.
-
-The large hero pet is removed and the full outlined name fits inside mobile
-viewports. The ID card uses the supplied `public/portrait-card.png` photo with a
-soft black shadow.
-Archived video assets and their rebuild script are retained but never loaded by
-the page.
 
 ## Rebuild the archived hero media
 
@@ -208,8 +197,7 @@ are recorded in `docs/verification.md`; do not interpret an unrun audit as passe
 Import this repository into Vercel as a Next.js project, with the workspace root
 as the project root, and use the default `npm run build` command. Add
 `GOOGLE_GENERATIVE_AI_API_KEY` as a sensitive, server-only environment variable
-to enable Gemini phrasing. `GROQ_API_KEY` enables the secondary provider. The local
-fallback needs no secret. Set
+to enable the chat assistant. `GROQ_API_KEY` enables the fallback provider. Set
 `NEXT_PUBLIC_SITE_URL` if using a custom domain; otherwise Vercel's production
 domain supplies metadataBase automatically.
 GitHub push and Vercel deployment need the corresponding authenticated accounts.

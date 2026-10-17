@@ -2,7 +2,9 @@
 
 import {
   Fragment,
+  useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type FormEvent,
@@ -10,69 +12,73 @@ import {
   type ReactNode,
 } from "react";
 import { CHAT } from "@/lib/data";
-import { answerQuestion, type Answer } from "@/lib/chat";
 import { lockScroll } from "@/lib/scroll";
 
-type MessageStatus = "loading" | "complete" | "error" | "stopped";
+type Status = "streaming" | "done" | "error" | "stopped";
 type Message = {
   id: string;
-  question: string;
-  answer: Answer;
-  status: MessageStatus;
-  notice?: string;
+  role: "user" | "assistant";
+  content: string;
+  status?: Status;
+  error?: string;
 };
 
-const STORAGE_KEY = "anees-robo-chat-v2";
-const TOPIC_KEY = "anees-robo-topic-v2";
+const STORAGE_KEY = "anees-robo-chat-v3";
+const MAX_STORED = 40;
 
 function readMessages(): Message[] {
   try {
     const parsed = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || "[]") as Message[];
-    return parsed.slice(-20).map((message) =>
-      message.status === "loading"
-        ? {
-            ...message,
-            status: "stopped",
-            answer: { ...message.answer, text: CHAT.stopped },
-          }
-        : message,
+    return parsed.slice(-MAX_STORED).map((message) =>
+      message.status === "streaming" ? { ...message, status: "stopped" } : message,
     );
   } catch {
     return [];
   }
 }
 
+function saveMessages(messages: Message[]) {
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-MAX_STORED)));
+  } catch {}
+}
+
 function safeHref(href: string) {
-  return /^(https?:|mailto:|tel:|\/|#)/i.test(href) ? href : "#";
+  return /^(https?:|mailto:|tel:|\/|#)/i.test(href) ? href : null;
 }
 
 function inlineMarkdown(text: string): ReactNode {
-  const tokens = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g);
+  const tokens = text.split(
+    /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)\s]+\)|https?:\/\/[^\s)]+[^\s).,;:!?])/g,
+  );
   return tokens.map((token, index) => {
-    if (/^\*\*[^*]+\*\*$/.test(token))
-      return <strong key={index}>{token.slice(2, -2)}</strong>;
+    if (/^\*\*[^*]+\*\*$/.test(token)) return <strong key={index}>{token.slice(2, -2)}</strong>;
     if (/^`[^`]+`$/.test(token)) return <code key={index}>{token.slice(1, -1)}</code>;
-    const link = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-    if (link) {
-      const href = safeHref(link[2]);
+    const link = token.match(/^\[([^\]]+)\]\(([^)\s]+)\)$/);
+    const bare = /^https?:\/\//.test(token) ? token : null;
+    if (link || bare) {
+      const label = link ? link[1] : bare!;
+      const href = safeHref(link ? link[2] : bare!);
+      if (!href) return <Fragment key={index}>{label}</Fragment>;
+      const external = /^https?:/.test(href);
       return (
         <a
           key={index}
           href={href}
-          target={href.startsWith("http") ? "_blank" : undefined}
-          rel={href.startsWith("http") ? "noreferrer" : undefined}
+          target={external ? "_blank" : undefined}
+          rel={external ? "noopener noreferrer" : undefined}
         >
-          {link[1]}
+          {label}
         </a>
       );
     }
-    return <Fragment key={index}>{token}</Fragment>;
+    return <Fragment key={index}>{token.replace(/\*\*/g, "")}</Fragment>;
   });
 }
 
-function formatAnswer(raw: string): ReactNode {
-  const text = raw.replace(/\\r\\n|\\n/g, "\n").replace(/\\t/g, " ").trim();
-  const lines = text.split(/\r?\n/);
+/** Renders a safe Markdown subset as React nodes — never as raw HTML. */
+function Markdown({ text }: { text: string }) {
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
   const blocks: ReactNode[] = [];
   for (let index = 0; index < lines.length; ) {
     const line = lines[index].trim();
@@ -80,110 +86,50 @@ function formatAnswer(raw: string): ReactNode {
       index += 1;
       continue;
     }
-    if (/^[-*•]\s+/.test(line)) {
-      const items: string[] = [];
-      while (index < lines.length && /^[-*•]\s+/.test(lines[index].trim())) {
-        items.push(lines[index].trim().replace(/^[-*•]\s+/, ""));
+    if (line.startsWith("```")) {
+      const code: string[] = [];
+      index += 1;
+      while (index < lines.length && !lines[index].trim().startsWith("```")) {
+        code.push(lines[index]);
         index += 1;
       }
+      index += 1;
       blocks.push(
-        <ul key={`ul-${index}`}>{items.map((item, itemIndex) => <li key={itemIndex}>{inlineMarkdown(item)}</li>)}</ul>,
+        <pre key={`pre-${index}`}>
+          <code>{code.join("\n")}</code>
+        </pre>,
       );
+      continue;
+    }
+    const listMatch = (pattern: RegExp) => {
+      const items: string[] = [];
+      while (index < lines.length && pattern.test(lines[index].trim())) {
+        items.push(lines[index].trim().replace(pattern, ""));
+        index += 1;
+      }
+      return items.map((item, itemIndex) => <li key={itemIndex}>{inlineMarkdown(item)}</li>);
+    };
+    if (/^[-*•]\s+/.test(line)) {
+      blocks.push(<ul key={`ul-${index}`}>{listMatch(/^[-*•]\s+/)}</ul>);
       continue;
     }
     if (/^\d+[.)]\s+/.test(line)) {
-      const items: string[] = [];
-      while (index < lines.length && /^\d+[.)]\s+/.test(lines[index].trim())) {
-        items.push(lines[index].trim().replace(/^\d+[.)]\s+/, ""));
-        index += 1;
-      }
-      blocks.push(
-        <ol key={`ol-${index}`}>{items.map((item, itemIndex) => <li key={itemIndex}>{inlineMarkdown(item)}</li>)}</ol>,
-      );
+      blocks.push(<ol key={`ol-${index}`}>{listMatch(/^\d+[.)]\s+/)}</ol>);
       continue;
     }
-    const heading = line.match(/^#{1,3}\s+(.+)$/)?.[1];
-    const inferredHeading =
-      !heading && line.length < 48 && !/[.!?:]$/.test(line) && index < lines.length - 1;
+    const heading = line.match(/^#{1,6}\s+(.+)$/)?.[1];
     blocks.push(
-      heading || inferredHeading ? (
-        <strong className="answer-heading" key={index}>{inlineMarkdown(heading || line)}</strong>
+      heading ? (
+        <p className="answer-heading" key={index}>
+          {inlineMarkdown(heading)}
+        </p>
       ) : (
-        <p className="answer-line" key={index}>{inlineMarkdown(line)}</p>
+        <p key={index}>{inlineMarkdown(line)}</p>
       ),
     );
     index += 1;
   }
-  return blocks;
-}
-
-function uniqueSources<T extends { href: string }>(sources: T[]) {
-  return sources.filter(
-    (source, index, all) =>
-      all.findIndex((candidate) => candidate.href === source.href) === index,
-  );
-}
-
-function SourceLink({
-  href,
-  label,
-  onInternal,
-}: {
-  href: string;
-  label: string;
-  onInternal?: () => void;
-}) {
-  const external = /^https?:/.test(href) || href.startsWith("/");
-  return (
-    <a
-      href={href}
-      onClick={href.startsWith("#") ? onInternal : undefined}
-      target={external ? "_blank" : undefined}
-      rel={external ? "noreferrer" : undefined}
-    >
-      {label}{external ? " ↗" : ""}
-    </a>
-  );
-}
-
-function AnswerReferences({ answer, onInternal }: { answer: Answer; onInternal: () => void }) {
-  const seen = new Set<string>();
-  const contact = uniqueSources(
-    answer.sources.filter((source) => /^(mailto:|tel:|#contact)/.test(source.href)),
-  );
-  const general = uniqueSources(
-    answer.sources.filter((source) => !/^(mailto:|tel:|#contact)/.test(source.href)),
-  );
-  return (
-    <>
-      {answer.evidence?.map((item, index) => {
-        const sources = uniqueSources(item.sources).filter((source) => {
-          if (seen.has(source.href)) return false;
-          seen.add(source.href);
-          return true;
-        });
-        return (
-          <div className="claim-source" key={`${item.claim}-${index}`}>
-            <p>{item.claim}</p>
-            {sources.length > 0 && (
-              <div>{sources.map((source) => <SourceLink key={source.href} {...source} onInternal={onInternal} />)}</div>
-            )}
-          </div>
-        );
-      })}
-      {!answer.evidence?.length && general.length > 0 && (
-        <div className="chat-sources">
-          <span>{CHAT.source}</span>
-          {general.map((source) => <SourceLink key={source.href} {...source} onInternal={onInternal} />)}
-        </div>
-      )}
-      {contact.length > 0 && (
-        <div className="chat-actions">
-          {contact.map((source) => <SourceLink key={source.href} {...source} onInternal={onInternal} />)}
-        </div>
-      )}
-    </>
-  );
+  return <>{blocks}</>;
 }
 
 export default function ChatPanel({ onClose }: { onClose: () => void }) {
@@ -191,59 +137,42 @@ export default function ChatPanel({ onClose }: { onClose: () => void }) {
   const input = useRef<HTMLTextAreaElement>(null);
   const log = useRef<HTMLDivElement>(null);
   const request = useRef<AbortController | null>(null);
-  const pendingId = useRef<string | null>(null);
-  const stickToBottom = useRef(true);
-  const messagesRef = useRef<Message[]>([]);
-  const topic = useRef<string | undefined>(
-    typeof window === "undefined"
-      ? undefined
-      : sessionStorage.getItem(TOPIC_KEY) || undefined,
-  );
-  const [question, setQuestion] = useState("");
+  const atBottom = useRef(true);
   const [messages, setMessages] = useState<Message[]>(readMessages);
+  const [question, setQuestion] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [showLatest, setShowLatest] = useState(false);
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
 
-  function commit(transform: (current: Message[]) => Message[]) {
+  const update = useCallback((transform: (current: Message[]) => Message[]) => {
     setMessages((current) => {
       const next = transform(current);
-      messagesRef.current = next;
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      saveMessages(next);
       return next;
     });
-  }
+  }, []);
 
-  function updateMessage(id: string, update: Partial<Message>) {
-    commit((current) =>
-      current.map((message) =>
-        message.id === id ? { ...message, ...update } : message,
-      ),
-    );
-  }
-
+  // Open as a modal, freeze the page (including Lenis), restore on close.
   useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
-
-  useEffect(() => {
-    const previousFocus = document.activeElement as HTMLElement | null;
     const node = dialog.current;
+    const previousFocus = document.activeElement as HTMLElement | null;
     const overflow = document.body.style.overflow;
     node?.showModal();
     document.body.style.overflow = "hidden";
     lockScroll(true);
-    input.current?.focus();
+    // Only auto-focus where it won't pop up a virtual keyboard.
+    if (matchMedia("(hover: hover) and (pointer: fine)").matches)
+      input.current?.focus({ preventScroll: true });
+    else node?.focus({ preventScroll: true });
+    if (log.current) log.current.scrollTop = log.current.scrollHeight;
     return () => {
       request.current?.abort();
-      const safe = messagesRef.current.map((message) =>
-        message.status === "loading"
-          ? {
-              ...message,
-              status: "stopped" as const,
-              answer: { ...message.answer, text: CHAT.stopped },
-            }
-          : message,
+      saveMessages(
+        messagesRef.current.map((message) =>
+          message.status === "streaming" ? { ...message, status: "stopped" } : message,
+        ),
       );
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
       node?.close();
       document.body.style.overflow = overflow;
       lockScroll(false);
@@ -251,116 +180,152 @@ export default function ChatPanel({ onClose }: { onClose: () => void }) {
     };
   }, []);
 
+  // Keep the mobile sheet above the virtual keyboard (iOS doesn't resize the layout viewport).
   useEffect(() => {
-    if (log.current && stickToBottom.current)
-      log.current.scrollTop = log.current.scrollHeight;
+    const viewport = window.visualViewport;
+    const node = dialog.current;
+    if (!viewport || !node) return;
+    const sync = () => {
+      node.style.setProperty("--vvh", `${viewport.height}px`);
+      node.style.setProperty("--vvt", `${viewport.offsetTop}px`);
+      if (atBottom.current && log.current) log.current.scrollTop = log.current.scrollHeight;
+    };
+    sync();
+    viewport.addEventListener("resize", sync);
+    viewport.addEventListener("scroll", sync);
+    return () => {
+      viewport.removeEventListener("resize", sync);
+      viewport.removeEventListener("scroll", sync);
+    };
+  }, []);
+
+  // Follow new content only while the reader is already at the bottom.
+  useLayoutEffect(() => {
+    const node = log.current;
+    if (!node) return;
+    if (atBottom.current) node.scrollTop = node.scrollHeight;
+    else setShowLatest(true);
   }, [messages]);
 
   useEffect(() => {
     const node = input.current;
     if (!node) return;
-    node.style.height = "0px";
-    node.style.height = Math.min(node.scrollHeight, 108) + "px";
-    node.style.overflowY = node.scrollHeight > 108 ? "auto" : "hidden";
+    node.style.height = "auto";
+    node.style.height = Math.min(node.scrollHeight, 132) + "px";
   }, [question]);
 
-  function stop() {
-    const id = pendingId.current;
-    request.current?.abort();
-    if (id)
-      updateMessage(id, {
-        status: "stopped",
-        answer: {
-          ...answerQuestion("", topic.current),
-          text: CHAT.stopped,
-          sources: [],
-        },
-      });
-    pendingId.current = null;
-    setGenerating(false);
+  function onScroll() {
+    const node = log.current;
+    if (!node) return;
+    atBottom.current = node.scrollHeight - node.scrollTop - node.clientHeight < 48;
+    if (atBottom.current) setShowLatest(false);
   }
 
-  function closePanel() {
-    if (generating) stop();
-    onClose();
+  function jumpToLatest() {
+    const node = log.current;
+    if (!node) return;
+    atBottom.current = true;
+    setShowLatest(false);
+    node.scrollTo({
+      top: node.scrollHeight,
+      behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    });
   }
 
-  async function ask(text: string) {
-    const trimmed = text.trim();
-    if (!trimmed || trimmed.length > 500 || generating) return;
-
-    const previousTopic = topic.current;
-    const local = answerQuestion(trimmed, previousTopic);
-    topic.current = local.topic ?? previousTopic;
-    if (topic.current) sessionStorage.setItem(TOPIC_KEY, topic.current);
-    const id = crypto.randomUUID();
-    pendingId.current = id;
-    stickToBottom.current = true;
-    commit((current) => [
-      ...current.slice(-19),
-      {
-        id,
-        question: trimmed,
-        answer: { ...local, text: "" },
-        status: "loading",
-      },
-    ]);
-    setQuestion("");
+  async function send(history: Message[]) {
+    const assistantId = crypto.randomUUID();
+    atBottom.current = true;
+    update(() => [...history, { id: assistantId, role: "assistant", content: "", status: "streaming" }]);
     setGenerating(true);
-
     const controller = new AbortController();
     request.current = controller;
+    const patch = (changes: Partial<Message>) =>
+      update((current) =>
+        current.map((message) => (message.id === assistantId ? { ...message, ...changes } : message)),
+      );
+
+    let text = "";
     try {
+      const payload = history
+        .filter((message) => message.content && message.status !== "error")
+        .slice(-12)
+        .map(({ role, content }) => ({ role, content }));
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: trimmed, previousTopic }),
+        body: JSON.stringify({ messages: payload }),
         signal: controller.signal,
       });
-      if (!response.ok)
-        throw new Error((await response.text()) || "Chat request failed");
-      const text = (await response.text()).trim();
-      if (!text) throw new Error("The assistant returned an empty response");
-      const engine = response.headers.get("x-answer-engine");
-      updateMessage(id, {
-        answer: { ...local, text },
-        status: "complete",
-        notice:
-          engine === "local-fallback"
-            ? CHAT.localFallbackNotice
-            : undefined,
-      });
-    } catch (error) {
-      if ((error as Error).name === "AbortError") {
-        updateMessage(id, {
-          status: "stopped",
-          answer: { ...local, text: CHAT.stopped, sources: [] },
-        });
-      } else {
-        updateMessage(id, {
-          status: "error",
-          answer: { ...local, text: CHAT.error, sources: [] },
-        });
+      if (!response.ok || !response.body) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error || CHAT.error);
       }
+      const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+      let buffer = "";
+      let finished = false;
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += value;
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const event = JSON.parse(line) as { type: string; text?: string; error?: string };
+          if (event.type === "delta" && event.text) {
+            text += event.text;
+            patch({ content: text });
+          } else if (event.type === "error") throw new Error(event.error || CHAT.error);
+          else if (event.type === "done") finished = true;
+        }
+      }
+      if (!finished) throw new Error(CHAT.error);
+      patch({ content: text, status: "done" });
+    } catch (error) {
+      if ((error as Error).name === "AbortError") patch({ content: text, status: "stopped" });
+      else
+        patch({
+          content: text,
+          status: "error",
+          error: (error as Error).message && !(error instanceof TypeError) ? (error as Error).message : CHAT.error,
+        });
     } finally {
       request.current = null;
-      pendingId.current = null;
       setGenerating(false);
-      input.current?.focus();
     }
+  }
+
+  function ask(raw: string) {
+    const text = raw.trim();
+    if (!text || text.length > CHAT.maxChars || generating) return;
+    setQuestion("");
+    void send([...messagesRef.current, { id: crypto.randomUUID(), role: "user", content: text }]);
+  }
+
+  function retry(assistantId: string) {
+    if (generating) return;
+    const index = messagesRef.current.findIndex((message) => message.id === assistantId);
+    if (index > 0) void send(messagesRef.current.slice(0, index));
+  }
+
+  function closePanel() {
+    request.current?.abort();
+    onClose();
   }
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    void ask(question);
+    ask(question);
   }
 
   function keyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === "Enter" && !event.shiftKey) {
+    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
-      void ask(question);
+      ask(question);
     }
   }
+
+  const remaining = CHAT.maxChars - question.length;
 
   return (
     <dialog
@@ -368,101 +333,111 @@ export default function ChatPanel({ onClose }: { onClose: () => void }) {
       className="robo-chat"
       aria-labelledby="robo-chat-title"
       aria-describedby="robo-chat-subtitle"
+      tabIndex={-1}
+      data-lenis-prevent
       onCancel={(event) => {
         event.preventDefault();
         closePanel();
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) closePanel();
       }}
     >
       <header className="chat-header">
         <span className="chat-avatar" aria-hidden="true">
           <i /> <i />
         </span>
-        <div>
+        <div className="chat-heading">
           <h2 id="robo-chat-title">{CHAT.title}</h2>
           <p id="robo-chat-subtitle">{CHAT.subtitle}</p>
         </div>
-        <button
-          type="button"
-          className="chat-close"
-          onClick={closePanel}
-          aria-label={CHAT.close}
-        >
-          ×
+        {messages.length > 0 && (
+          <button
+            type="button"
+            className="chat-new"
+            onClick={() => {
+              request.current?.abort();
+              update(() => []);
+              setShowLatest(false);
+              input.current?.focus({ preventScroll: true });
+            }}
+          >
+            {CHAT.clear}
+          </button>
+        )}
+        <button type="button" className="chat-close" onClick={closePanel} aria-label={CHAT.close}>
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18">
+            <path d="M4 4l10 10M14 4 4 14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
         </button>
       </header>
 
-      <div
-        ref={log}
-        className="chat-log"
-        role="log"
-        aria-live="polite"
-        aria-relevant="additions text"
-        aria-label="Conversation"
-        aria-busy={generating}
-        onScroll={(event) => {
-          const node = event.currentTarget;
-          stickToBottom.current =
-            node.scrollHeight - node.scrollTop - node.clientHeight < 64;
-        }}
-      >
-        <div className="chat-bubble chat-greeting">
-          {formatAnswer(CHAT.intro)}
-        </div>
-        {messages.map((message) => (
-          <div className="chat-turn" key={message.id}>
-            <p className="chat-question">
-              <span className="sr-only">You: </span>
-              {message.question}
-            </p>
+      <div className="chat-body">
+        <div
+          ref={log}
+          className="chat-log"
+          role="log"
+          aria-label="Conversation"
+          aria-busy={generating}
+          tabIndex={0}
+          onScroll={onScroll}
+        >
+          <div className="chat-msg assistant">
             <div className="chat-bubble">
-              <span className="sr-only">Robo Cat: </span>
-              {message.answer.text ? (
-                <div
-                  className={
-                    "answer-content " +
-                    (message.status === "loading" ? "streaming-text" : "")
-                  }
-                >
-                  {formatAnswer(message.answer.text)}
-                </div>
-              ) : (
-                <span className="typing" aria-label="Robo Cat is thinking">
-                  <i /> <i /> <i />
-                </span>
-              )}
-              {message.notice && (
-                <p className="chat-notice" role="status">
-                  {message.notice}
-                </p>
-              )}
-              {message.status === "error" && (
-                <button
-                  type="button"
-                  className="retry-button"
-                  onClick={() => void ask(message.question)}
-                >
-                  {CHAT.retry}
-                </button>
-              )}
-              {message.status === "complete" && (
-                <AnswerReferences answer={message.answer} onInternal={closePanel} />
-              )}
+              <p>{CHAT.intro}</p>
             </div>
           </div>
-        ))}
-      </div>
-
-      <div className="chat-suggestions" aria-label="Suggested questions">
-        {CHAT.suggestions.map((suggestion) => (
-          <button
-            key={suggestion}
-            type="button"
-            onClick={() => void ask(suggestion)}
-            disabled={generating}
-          >
-            {suggestion}
+          {messages.length === 0 && (
+            <div className="chat-suggestions" aria-label="Suggested questions">
+              {CHAT.suggestions.map((suggestion) => (
+                <button key={suggestion} type="button" onClick={() => ask(suggestion)}>
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          )}
+          {messages.map((message) =>
+            message.role === "user" ? (
+              <div className="chat-msg user" key={message.id}>
+                <p className="chat-bubble">
+                  <span className="sr-only">You: </span>
+                  {message.content}
+                </p>
+              </div>
+            ) : (
+              <div className="chat-msg assistant" key={message.id}>
+                <div className="chat-bubble" aria-live={message.status === "streaming" ? "off" : "polite"}>
+                  <span className="sr-only">Robo Cat: </span>
+                  {message.content ? (
+                    <div className={"answer" + (message.status === "streaming" ? " streaming" : "")}>
+                      <Markdown text={message.content} />
+                    </div>
+                  ) : message.status === "streaming" ? (
+                    <span className="typing" role="status" aria-label={CHAT.thinking}>
+                      <i /> <i /> <i />
+                    </span>
+                  ) : null}
+                  {message.status === "stopped" && <p className="chat-meta">{CHAT.stopped}</p>}
+                  {message.status === "error" && (
+                    <div className="chat-error" role="alert">
+                      <p>{message.error || CHAT.error}</p>
+                      <button type="button" onClick={() => retry(message.id)} disabled={generating}>
+                        {CHAT.retry}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ),
+          )}
+        </div>
+        {showLatest && (
+          <button type="button" className="chat-latest" onClick={jumpToLatest} aria-label={CHAT.latest}>
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">
+              <path d="M8 3v10m-4-4 4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </button>
-        ))}
+        )}
       </div>
 
       <form className="chat-form" onSubmit={submit}>
@@ -476,59 +451,91 @@ export default function ChatPanel({ onClose }: { onClose: () => void }) {
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
             onKeyDown={keyDown}
-            maxLength={500}
+            maxLength={CHAT.maxChars}
             rows={1}
             autoComplete="off"
             enterKeyHint="send"
             placeholder={CHAT.placeholder}
+            aria-describedby="robo-chat-privacy"
           />
-          <span
-            className={"char-count " + (question.length >= 400 ? "visible" : "")}
-            aria-live="polite"
-          >
-            {question.length} / 500
-          </span>
+          {generating ? (
+            <button type="button" className="chat-send stop" onClick={() => request.current?.abort()} aria-label={CHAT.stop}>
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14">
+                <rect x="2" y="2" width="10" height="10" rx="2" fill="currentColor" />
+              </svg>
+            </button>
+          ) : (
+            <button type="submit" className="chat-send" disabled={!question.trim()} aria-label={CHAT.send}>
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18">
+                <path d="M9 15V3m-5 5 5-5 5 5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          )}
         </div>
-        {generating ? (
-          <button className="pill stop-button" type="button" onClick={stop}>
-            {CHAT.stop}
-          </button>
-        ) : (
-          <button
-            className="pill pill-primary"
-            type="submit"
-            disabled={!question.trim()}
-          >
-            {CHAT.send}
-          </button>
-        )}
+        <p id="robo-chat-privacy" className="chat-footnote">
+          {remaining < 120 ? (
+            <span aria-live="polite">{remaining} characters left</span>
+          ) : (
+            CHAT.privacy
+          )}
+        </p>
       </form>
 
-      <footer className="chat-footer">
-        <p>{CHAT.privacy}</p>
-        <button
-          type="button"
-          onClick={() => {
-            request.current?.abort();
-            sessionStorage.removeItem(STORAGE_KEY);
-            sessionStorage.removeItem(TOPIC_KEY);
-            messagesRef.current = [];
-            setMessages([]);
-            setGenerating(false);
-            topic.current = undefined;
-            input.current?.focus();
-          }}
-        >
-          {CHAT.clear}
-        </button>
-      </footer>
-
       <style href="chat-styles" precedence="components">{`
-.robo-chat{box-sizing:border-box;position:fixed;inset:0;margin:auto;width:min(590px,calc(100vw - 24px));height:min(760px,calc(100dvh - 24px));max-width:none;max-height:none;padding:0;border:1px solid #ffffffb8;border-radius:26px;background:#f4f2eeb8;color:var(--ink);box-shadow:0 30px 100px #00000026,inset 0 1px #fff;backdrop-filter:blur(28px) saturate(1.12);-webkit-backdrop-filter:blur(28px) saturate(1.12);overflow:hidden}.robo-chat[open]{display:flex;flex-direction:column;animation:chat-enter .42s var(--ease) both}.robo-chat::backdrop{background:#0d0d0d33;backdrop-filter:blur(8px);animation:backdrop-enter .35s ease-out both}.chat-header{display:flex;align-items:center;gap:12px;padding:18px 20px;border-bottom:1px solid #ffffffa3;background:#ffffff24;flex-shrink:0}.chat-avatar{position:relative;width:48px;height:48px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--ink);border-radius:17px 17px 14px 14px}.chat-avatar:before,.chat-avatar:after{content:"";position:absolute;top:-5px;width:14px;height:14px;background:var(--ink);border-radius:3px;transform:rotate(45deg);z-index:-1}.chat-avatar:before{left:6px}.chat-avatar:after{right:6px}.chat-avatar i{width:6px;height:10px;border-radius:6px;background:white;animation:cat-blink 5s infinite}.chat-header h2{font-size:20px;letter-spacing:-.03em}.chat-header p{font-size:11px;margin-top:4px;color:var(--ink-2)}.chat-close{margin-left:auto;min-width:44px;height:44px;border-radius:50%;font-size:28px}.chat-close:hover{background:#0001}.chat-log{flex:1;min-height:0;overflow-y:scroll;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain;scrollbar-gutter:stable;padding:20px;scroll-behavior:smooth}.chat-log::-webkit-scrollbar{width:7px}.chat-log::-webkit-scrollbar-thumb{background:#0d0d0d35;border-radius:9px}.chat-log::-webkit-scrollbar-track{background:transparent}.chat-bubble{background:#ffffffa8;border:1px solid #ffffffc7;box-shadow:inset 0 0 0 1px #0d0d0d0a;border-radius:18px 18px 18px 4px;padding:16px;font-size:13px;line-height:1.6;overflow-wrap:anywhere}.chat-greeting{animation:greeting-in .55s .16s var(--ease) both}.chat-turn{animation:message-in .45s var(--ease) both}.chat-question{white-space:pre-wrap;background:var(--ink);color:white;border-radius:18px 18px 4px 18px;padding:12px 16px;margin:20px 0 12px 35px;font-size:13px;overflow-wrap:anywhere}.answer-content,.chat-greeting{display:flex;flex-direction:column;gap:8px}.answer-content ul,.answer-content ol,.chat-greeting ul,.chat-greeting ol{display:grid;gap:5px;padding-left:20px}.answer-heading{font-size:13px;margin-top:2px}.answer-line{white-space:pre-wrap}.answer-content a,.chat-greeting a,.claim-source a,.chat-sources a{text-decoration:underline;text-underline-offset:3px}.streaming-text:after{content:"";display:inline-block;width:5px;height:1em;margin-left:4px;background:currentColor;vertical-align:-2px;animation:cursor-blink .75s steps(1) infinite}.typing{display:flex;align-items:center;gap:5px;height:22px}.typing i{width:6px;height:6px;border-radius:50%;background:#777;animation:typing-dot 1s ease-in-out infinite}.typing i:nth-child(2){animation-delay:.14s}.typing i:nth-child(3){animation-delay:.28s}.chat-notice{margin-top:12px;padding:9px 10px;border-radius:10px;background:#ffffff6b;color:var(--ink-2);font-size:9px;line-height:1.45}.retry-button{margin-top:12px;border:1px solid var(--ink);border-radius:99px;padding:8px 13px;font-size:10px}.claim-source{margin-top:13px;padding-top:11px;border-top:1px solid var(--line);font-size:9px;line-height:1.45;color:var(--ink-2)}.claim-source>div{display:flex;flex-wrap:wrap;gap:7px;margin-top:7px}.chat-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:13px}.chat-actions a{border:1px solid var(--ink);border-radius:99px;padding:7px 11px;font-size:9px}.chat-sources{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:10px;border-top:1px solid var(--line);font-size:10px}.chat-sources>span{width:100%;color:var(--ink-2)}.chat-suggestions{position:relative;padding:10px 20px;display:flex;flex-wrap:wrap;gap:6px;flex-shrink:0}.chat-suggestions button{border:1px solid #ffffffb8;background:#ffffff47;border-radius:30px;padding:8px 10px;font-size:11px;text-align:left}.chat-suggestions button:hover{background:#ffffffa3}.chat-suggestions button:disabled{opacity:.45}.chat-form{display:grid;grid-template-columns:minmax(0,1fr) auto;padding:8px 20px;gap:8px;align-items:end;flex-shrink:0}.chat-compose{position:relative;min-width:0}.chat-form textarea{display:block;width:100%;min-width:0;max-height:108px;resize:none;overflow-y:hidden;scrollbar-width:none;border:1px solid #ffffffcf;border-radius:20px;background:#ffffffb8;box-shadow:inset 0 0 0 1px #0d0d0d42;padding:12px 13px 20px;font:inherit;font-size:12px;line-height:1.45;color:var(--ink)}.chat-form textarea::-webkit-scrollbar{display:none}.char-count{position:absolute;right:12px;bottom:5px;font-family:var(--font-mono);font-size:7px;color:var(--mute);opacity:0}.char-count.visible{opacity:1}.chat-form>button{min-width:78px;min-height:44px;font-size:12px;padding:10px 16px}.chat-form button:disabled{opacity:.5;cursor:default}.stop-button{border:1px solid var(--ink);background:#ffffffb8}.chat-footer{display:flex;align-items:center;gap:15px;padding:8px 20px max(16px,env(safe-area-inset-bottom));font-size:10px;line-height:1.5;color:var(--ink-2);flex-shrink:0}.chat-footer p{flex:1}.chat-footer button{min-height:40px;text-decoration:underline;white-space:nowrap}@keyframes chat-enter{from{opacity:0;transform:translateY(20px) scale(.975)}to{opacity:1;transform:none}}@keyframes backdrop-enter{from{opacity:0}to{opacity:1}}@keyframes greeting-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}@keyframes message-in{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}@keyframes typing-dot{0%,60%,100%{transform:translateY(0);opacity:.35}30%{transform:translateY(-5px);opacity:1}}@keyframes cursor-blink{50%{opacity:0}}@keyframes cat-blink{0%,44%,48%,100%{transform:scaleY(1)}46%{transform:scaleY(.15)}}@media(max-width:600px){.robo-chat{inset:auto 0 0;width:100%;height:min(90dvh,780px);margin:0;border-radius:24px 24px 0 0;border-bottom:0}.chat-header{padding:14px 16px}.chat-avatar{width:43px;height:43px;border-radius:15px}.chat-header h2{font-size:18px}.chat-header p{max-width:185px;font-size:10px}.chat-log{padding:14px 16px;scrollbar-gutter:auto}.chat-bubble{padding:13px;font-size:12px}.chat-question{margin:16px 0 9px 24px;font-size:12px}.chat-suggestions{padding:8px 16px;flex-wrap:nowrap;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-inline:16px;scrollbar-width:none}.chat-suggestions::-webkit-scrollbar{display:none}.chat-suggestions button{flex:0 0 auto;scroll-snap-align:start}.chat-form{padding:7px 12px}.chat-form textarea{padding:11px 12px 19px}.chat-form>button{min-width:68px;padding:10px 12px}.chat-footer{align-items:flex-end;padding:5px 16px max(10px,env(safe-area-inset-bottom));font-size:9px}.chat-footer button{min-height:34px}}@media(max-width:370px){.chat-header p{max-width:145px}.chat-form{grid-template-columns:minmax(0,1fr) 64px}.chat-form>button{min-width:64px;padding-inline:8px}.chat-footer p{max-width:225px}}@media(max-height:600px){.robo-chat{height:100dvh;border-radius:0}.chat-suggestions{display:none}.chat-header{padding-block:10px}.chat-footer{display:none}}@media(prefers-reduced-motion:reduce){.robo-chat[open],.robo-chat::backdrop,.chat-avatar i,.chat-greeting,.chat-turn,.typing i,.streaming-text:after{animation:none!important}.chat-log{scroll-behavior:auto}}
-      `}</style>
-      <style href="chat-mobile-motion" precedence="components">{`
-@keyframes chat-enter-mobile{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
-@media(max-width:600px){.robo-chat[open]{animation-name:chat-enter-mobile;transform-origin:bottom center}}
+.robo-chat{box-sizing:border-box;position:fixed;inset:0;margin:auto;width:min(600px,calc(100vw - 32px));height:min(780px,calc(100dvh - 32px));max-width:none;max-height:none;padding:0;border:1px solid #ffffffc0;border-radius:24px;background:#f4f2eee6;color:var(--ink);box-shadow:0 30px 90px #0000002e,inset 0 1px #fff;backdrop-filter:blur(24px) saturate(1.1);-webkit-backdrop-filter:blur(24px) saturate(1.1);overflow:hidden;outline:none}
+.robo-chat[open]{display:flex;flex-direction:column;animation:chat-enter .32s var(--ease) both}
+.robo-chat::backdrop{background:#0d0d0d40;backdrop-filter:blur(6px);animation:backdrop-enter .3s ease-out both}
+.chat-header{display:flex;align-items:center;gap:12px;padding:14px 14px 14px 18px;border-bottom:1px solid var(--line);flex-shrink:0}
+.chat-avatar{position:relative;isolation:isolate;width:40px;height:40px;flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--ink);border-radius:14px 14px 12px 12px}
+.chat-avatar:before,.chat-avatar:after{content:"";position:absolute;top:-4px;width:12px;height:12px;background:var(--ink);border-radius:3px;transform:rotate(45deg);z-index:-1}.chat-avatar:before{left:5px}.chat-avatar:after{right:5px}
+.chat-avatar i{width:5px;height:9px;border-radius:5px;background:#fff;animation:cat-blink 5s infinite}
+.chat-heading{min-width:0;flex:1}.chat-header h2{font-size:17px;letter-spacing:-.02em;line-height:1.2}
+.chat-header p{font-size:12px;margin-top:2px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-new{flex-shrink:0;min-height:36px;padding:0 12px;border:1px solid var(--line);border-radius:99px;font-size:12px;background:#ffffff80}.chat-new:hover{background:#fff}
+.chat-close{flex-shrink:0;width:40px;height:40px;display:grid;place-items:center;border-radius:50%}.chat-close:hover{background:#0d0d0d0f}
+.chat-body{position:relative;flex:1;min-height:0;display:flex}
+.chat-log{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:18px 18px 8px;display:flex;flex-direction:column;gap:12px;outline:none}
+.chat-log:focus-visible{box-shadow:inset 0 0 0 2px var(--ink)}
+.chat-log::-webkit-scrollbar{width:8px}.chat-log::-webkit-scrollbar-thumb{background:#0d0d0d30;border-radius:8px;border:2px solid transparent;background-clip:content-box}
+.chat-msg{display:flex;animation:message-in .28s var(--ease) both}.chat-msg.user{justify-content:flex-end}
+.chat-bubble{max-width:88%;min-width:0;padding:11px 14px;border-radius:18px;font-size:14.5px;line-height:1.6;overflow-wrap:anywhere}
+.chat-msg.assistant .chat-bubble{background:#fff;border:1px solid #0d0d0d12;border-bottom-left-radius:6px;box-shadow:0 1px 2px #0d0d0d0a}
+.chat-msg.user .chat-bubble{background:var(--ink);color:#fff;border-bottom-right-radius:6px;white-space:pre-wrap}
+.answer{display:flex;flex-direction:column;gap:8px}.answer ul,.answer ol{margin:0;padding-left:20px;display:grid;gap:4px}
+.answer-heading{font-weight:650;margin-top:4px}.answer a{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.answer code{font-family:var(--font-mono);font-size:.88em;background:#0d0d0d0d;padding:1px 5px;border-radius:5px}
+.answer pre{margin:0;padding:10px 12px;background:#0d0d0d;color:#f4f2ee;border-radius:10px;overflow-x:auto;font-size:12.5px;line-height:1.5}.answer pre code{background:none;padding:0;color:inherit}
+.streaming>:last-child:after{content:"";display:inline-block;width:6px;height:1em;margin-left:3px;vertical-align:-2px;background:currentColor;opacity:.6;animation:cursor-blink .8s steps(1) infinite}
+.typing{display:flex;align-items:center;gap:5px;height:24px}.typing i{width:7px;height:7px;border-radius:50%;background:#8a8780;animation:typing-dot 1s ease-in-out infinite}.typing i:nth-child(2){animation-delay:.14s}.typing i:nth-child(3){animation-delay:.28s}
+.chat-meta{margin-top:6px;font-size:12px;color:var(--ink-2)}
+.chat-error{margin-top:4px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px;color:#8a1c1c}
+.chat-error button{min-height:34px;padding:0 14px;border:1px solid currentColor;border-radius:99px;font-size:12px;color:var(--ink)}.chat-error button:disabled{opacity:.5}
+.chat-suggestions{display:flex;flex-wrap:wrap;gap:8px;padding-left:2px}
+.chat-suggestions button{min-height:38px;border:1px solid #0d0d0d1f;background:#ffffffa0;border-radius:99px;padding:8px 13px;font-size:13px;text-align:left;line-height:1.3}.chat-suggestions button:hover{background:#fff;border-color:#0d0d0d40}
+.chat-latest{position:absolute;left:50%;bottom:10px;translate:-50% 0;width:38px;height:38px;display:grid;place-items:center;border-radius:50%;background:var(--ink);color:#fff;box-shadow:0 6px 18px #0003}
+.chat-form{flex-shrink:0;padding:10px 14px max(12px,env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+.chat-compose{display:flex;align-items:flex-end;gap:8px;padding:6px 6px 6px 14px;border:1px solid #0d0d0d29;border-radius:22px;background:#fff;transition:border-color .15s,box-shadow .15s}
+.chat-compose:focus-within{border-color:var(--ink);box-shadow:0 0 0 3px #0d0d0d14}
+.chat-compose textarea{flex:1;min-width:0;max-height:132px;resize:none;border:0;outline:none;background:transparent;padding:7px 0;font:inherit;font-size:16px;line-height:1.45;color:var(--ink)}
+.chat-compose textarea::placeholder{color:var(--mute)}
+.chat-send{flex-shrink:0;width:38px;height:38px;display:grid;place-items:center;border-radius:50%;background:var(--ink);color:#fff;transition:opacity .15s}
+.chat-send:disabled{opacity:.25}.chat-send.stop{background:#fff;color:var(--ink);border:1px solid var(--ink)}
+.chat-footnote{margin-top:7px;padding:0 6px;font-size:11px;line-height:1.4;color:var(--ink-2);text-align:center}
+@keyframes chat-enter{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes chat-enter-mobile{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes backdrop-enter{from{opacity:0}to{opacity:1}}
+@keyframes message-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes typing-dot{0%,60%,100%{transform:translateY(0);opacity:.35}30%{transform:translateY(-4px);opacity:1}}
+@keyframes cursor-blink{50%{opacity:0}}
+@keyframes cat-blink{0%,44%,48%,100%{transform:scaleY(1)}46%{transform:scaleY(.15)}}
+@media(max-width:600px){
+.robo-chat{inset:auto 0 auto 0;top:calc(var(--vvt,0px) + var(--vvh,100dvh));translate:0 -100%;width:100%;height:min(88dvh,var(--vvh,100dvh));margin:0;border-radius:22px 22px 0 0;border-bottom:0}
+.robo-chat[open]{animation-name:chat-enter-mobile}
+.chat-header{padding:10px 8px 10px 14px}.chat-log{padding:14px 12px 6px}
+.chat-bubble{max-width:92%;font-size:15px}.chat-form{padding:8px 10px max(10px,env(safe-area-inset-bottom))}
+}
+@media(max-width:600px) and (max-height:520px){.robo-chat{height:var(--vvh,100dvh);border-radius:0}.chat-footnote{display:none}}
+@media(prefers-reduced-motion:reduce){.robo-chat[open],.robo-chat::backdrop,.chat-avatar i,.chat-msg,.typing i,.streaming>:last-child:after{animation:none!important}}
       `}</style>
     </dialog>
   );

@@ -60,7 +60,13 @@ export const metadata: Metadata = {
   },
   icons: { icon: "/favicon.svg" },
 };
-export const viewport: Viewport = { themeColor: "#f4f2ee" };
+export const viewport: Viewport = {
+  themeColor: "#f4f2ee",
+  width: "device-width",
+  initialScale: 1,
+  // Let Android Chrome shrink the layout when the keyboard opens; zoom stays enabled.
+  interactiveWidget: "resizes-content",
+};
 export default function RootLayout({
   children,
 }: {
